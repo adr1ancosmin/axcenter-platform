@@ -539,7 +539,7 @@ app.post('/api/admin/ai-quiz', requireAuth, requireAdmin, async (req, res) => {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20240620',
+        model: process.env.ANTHROPIC_MODEL || 'claude-3-haiku-20240307',
         max_tokens: 2000,
         system,
         messages: [{ role: 'user', content: [{ type: 'text', text: prompt }] }]
