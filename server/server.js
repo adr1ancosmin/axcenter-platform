@@ -5,7 +5,6 @@ const cors = require('cors');
 const multer = require('multer');
 const { nanoid } = require('nanoid');
 const { init, run, get, all } = require('./db');
-const Anthropic = (() => { try { return require('anthropic'); } catch(e) { return null; } })();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -523,28 +522,34 @@ init().then(() => {
 // ===== AI QUIZ GENERATION (ADMIN) =====
 app.post('/api/admin/ai-quiz', requireAuth, requireAdmin, async (req, res) => {
   try {
-    if (!Anthropic) return res.status(500).json({ error: 'anthropic_sdk_missing' });
     const { subject, grade, group_name, topic, count } = req.body || {};
     if (!subject || !grade) return res.status(400).json({ error: 'missing_fields' });
     const num = Math.max(1, Math.min(20, Number(count || 5)));
-
-    const client = new Anthropic.Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    if (!process.env.ANTHROPIC_API_KEY) return res.status(500).json({ error: 'missing_anthropic_api_key' });
+    const API_KEY = process.env.ANTHROPIC_API_KEY;
+    if (!API_KEY) return res.status(500).json({ error: 'missing_anthropic_api_key' });
 
     const system = 'You generate Romanian school multiple-choice quizzes. Return ONLY valid JSON. Do not include any extra text.';
-    const userPrompt = `Creează un test MCQ pentru:\n- Subiect: ${subject}\n- Clasa: ${grade}\n- Grup: ${group_name || '-'}\n- Topic/competențe: ${topic || 'curriculum standard'}\n- Număr întrebări: ${num}\n\nCerințe:\n- DOAR JSON valid conform schemei:\n{\n  "title": "string",\n  "questions": [\n    {\n      "text": "string",\n      "options": ["string", "string", "string", "string"],\n      "correctIndex": 0\n    }\n  ]\n}\n- Limbaj adecvat clasei. Distractori plauzibili. Un singur răspuns corect.`;
+    const prompt = `Creează un test MCQ pentru:\n- Subiect: ${subject}\n- Clasa: ${grade}\n- Grup: ${group_name || '-'}\n- Topic/competențe: ${topic || 'curriculum standard'}\n- Număr întrebări: ${num}\n\nCerințe:\n- DOAR JSON valid conform schemei:\n{\n  \"title\": \"string\",\n  \"questions\": [\n    {\n      \"text\": \"string\",\n      \"options\": [\"string\", \"string\", \"string\", \"string\"],\n      \"correctIndex\": 0\n    }\n  ]\n}\n- Limbaj adecvat clasei. Distractori plauzibili. Un singur răspuns corect.`;
 
-    const msg = await client.messages.create({
-      model: 'claude-3-5-sonnet-20240620',
-      max_tokens: 2000,
-      system,
-      messages: [{ role: 'user', content: userPrompt }],
-      response_format: { type: 'json_object' }
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20240620',
+        max_tokens: 2000,
+        system,
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' }
+      })
     });
-
-    const text = msg?.content?.[0]?.text || '{}';
-    let data;
-    try { data = JSON.parse(text); } catch (e) { return res.status(500).json({ error: 'invalid_ai_json' }); }
+    if (!resp.ok) return res.status(500).json({ error: 'anthropic_http_' + resp.status });
+    const out = await resp.json();
+    const text = out?.content?.[0]?.text || '{}';
+    let data; try { data = JSON.parse(text); } catch(e) { return res.status(500).json({ error: 'invalid_ai_json' }); }
     if (!data || !Array.isArray(data.questions) || !data.questions.length) return res.status(500).json({ error: 'ai_empty' });
 
     const title = String(data.title || `Quiz AI — ${subject} ${grade}`).slice(0, 200);
@@ -553,10 +558,7 @@ app.post('/api/admin/ai-quiz', requireAuth, requireAdmin, async (req, res) => {
     for (const q of data.questions) {
       const options = Array.isArray(q.options) ? q.options.slice(0, 10) : [];
       const correctIndex = Number(q.correctIndex || 0);
-      await run(
-        `INSERT INTO questions (quiz_id, text, options_json, correct_index) VALUES (?, ?, ?, ?)`,
-        [quizId, String(q.text || '').slice(0, 1000), JSON.stringify(options), correctIndex]
-      );
+      await run(`INSERT INTO questions (quiz_id, text, options_json, correct_index) VALUES (?, ?, ?, ?)`, [quizId, String(q.text || '').slice(0, 1000), JSON.stringify(options), correctIndex]);
     }
     res.json({ ok: true, id: quizId });
   } catch (e) {
