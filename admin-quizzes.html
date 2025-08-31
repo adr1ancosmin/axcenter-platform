@@ -66,7 +66,25 @@
       if (fai) fai.addEventListener('submit', async (e) => {
         e.preventDefault();
         const data = Object.fromEntries(new FormData(fai));
-        try { const out = await api('/api/admin/ai-quiz', { method:'POST', body: JSON.stringify(data) }); alert('Quiz generat cu AI, ID=' + out.id); fai.reset(); loadList(); } catch(e){ alert('Eroare generare AI'); }
+        try {
+          const res = await fetch(API_BASE + '/api/admin/ai-quiz', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('ax_token') || '' },
+            body: JSON.stringify(data)
+          });
+          if (!res.ok) {
+            let msg = 'Eroare generare AI';
+            try { const j = await res.json(); msg = j.error + (j.detail ? (' — ' + j.detail) : ''); } catch(_) {}
+            alert(msg + ' (HTTP ' + res.status + ')');
+            return;
+          }
+          const out = await res.json();
+          alert('Quiz generat cu AI, ID=' + out.id);
+          fai.reset();
+          loadList();
+        } catch (err) {
+          alert('Eroare generare AI (rețea)');
+        }
       });
       const delAllBtn = document.getElementById('deleteAllQuizzes');
       if (delAllBtn) delAllBtn.addEventListener('click', deleteAll);
