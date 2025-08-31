@@ -385,11 +385,19 @@ app.post('/api/quizzes/:quizId/submit', requireAuth, async (req, res) => {
   const questions = await all(`SELECT id, correct_index FROM questions WHERE quiz_id=?`, [quizId]);
   const answerMap = new Map(answers.map(a => [Number(a.questionId), Number(a.answerIndex)]));
   let score = 0;
+  const details = [];
   for (const q of questions) {
-    if (answerMap.get(q.id) === q.correct_index) score++;
+    const your = answerMap.get(q.id);
+    const correct = q.correct_index;
+    const ok = your === correct;
+    if (ok) score++;
+    details.push({ questionId: q.id, yourAnswer: Number(isNaN(your) ? -1 : your), correctIndex: correct, isCorrect: ok });
   }
   await run(`INSERT INTO results (user_id, quiz_id, score) VALUES (?, ?, ?)`, [req.user.id, quizId, score]);
-  res.json({ ok: true, score, total: questions.length });
+  const total = questions.length;
+  const percent = total ? Math.round((score / total) * 100) : 0;
+  const grade10 = Math.round((percent / 10) * 10) / 10; // 0-10, 1 decimal
+  res.json({ ok: true, score, total, percent, grade10, details });
 });
 
 // admin delete quiz (cascade removes questions, keeps results orphan-safe via FK)

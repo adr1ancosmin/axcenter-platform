@@ -566,7 +566,11 @@
         });
         try {
           const res = await api(`/api/quizzes/${quiz.id}/submit`, { method: 'POST', body: JSON.stringify({ answers }) });
-          alert(`Scor: ${res.score} / ${res.total}`);
+          const lines = res.details.map(d => {
+            const sign = d.isCorrect ? '✔️' : '❌';
+            return `${sign} Întrebarea ${d.questionId}: răspunsul tău = ${d.yourAnswer}, corect = ${d.correctIndex}`;
+          }).join('\n');
+          alert(`Scor: ${res.score}/${res.total} — ${res.percent}% (nota ${Math.max(1, Math.round(res.percent/10))})\n\nDetalii:\n${lines}`);
           loadQuizzes();
         } catch(e) { alert('Trimitere eșuată'); }
       });
