@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AXCenter • Platformă</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ===== PLATFORM PAGE STYLES (scoped with platform__*) ===== */
+    :root {
+      --platform-sidebar-width: 260px;
+      --platform-accent: #581c67;
+      --platform-accent-2: #d052bd;
+      --platform-surface: rgba(255, 255, 255, 0.9);
+      --platform-text: #3a1f45;
+    }
+
+    body.platform {
+      min-height: 100vh;
+    }
+
+    .platform__wrapper {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Topbar (mobile) */
+    .platform__topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1rem;
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 1200;
+    }
+    .platform__brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #fff;
+      font-weight: bold;
+      text-shadow: 0 1.5px 1.2px rgb(0, 0, 0);
+    }
+    .platform__brand img { height: 36px; width: auto; }
+    .platform__hamburger {
+      background: none; border: none; cursor: pointer; width: 40px; height: 40px;
+      display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; border-radius: 8px;
+    }
+    .platform__hamburger span {
+      width: 24px; height: 3px; background: var(--platform-accent); display: block; border-radius: 3px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.2) inset;
+    }
+
+    /* Sidebar */
+    .platform__sidebar {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: var(--platform-sidebar-width);
+      padding: 150px 16px 16px 16px; /* space for larger logo */
+      background: linear-gradient(205deg, #4b3052 0%, #d052bd 100%);
+      color: #fff;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      overflow-y: auto;
+      z-index: 1100;
+    }
+    .platform__logo { position: absolute; top: 16px; left: 16px; right: 16px; display:flex; justify-content:center; }
+    .platform__logo img { height: 52px; width: auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25)); }
+    .platform__nav {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .platform__nav button {
+      width: 100%;
+      text-align: left;
+      background: rgba(255,255,255,0.14);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 12px;
+      padding: 0.9rem 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .platform__nav button:hover { background: rgba(255,255,255,0.22); }
+    .platform__nav button.is-active {
+      background: #fff;
+      color: var(--platform-accent);
+      border-color: #fff;
+      font-weight: 700;
+    }
+
+    /* Main area */
+    .platform__main {
+      margin-left: var(--platform-sidebar-width);
+      width: calc(100% - var(--platform-sidebar-width));
+      padding: 100px 24px 32px 24px;
+    }
+    .platform__container {
+      max-width: 1100px; margin: 0 auto;
+    }
+    .platform__title {
+      color: #ffffff; text-shadow: 0 2px 4px rgb(74, 4, 62);
+      font-size: 2rem; margin-bottom: 1rem; font-weight: 800;
+    }
+    .platform__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 0.5rem; }
+    .platform__back {
+      background: #ffffff;
+      color: var(--platform-accent);
+      text-decoration: none;
+      border: 1px solid rgba(88,28,103,0.25);
+      border-radius: 10px;
+      padding: 0.55rem 0.9rem;
+      font-weight: 700;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      white-space: nowrap;
+    }
+    .platform__back:hover { background: #f3e9ff; border-color: var(--platform-accent); }
+    .platform__auth {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .platform__btn {
+      background: var(--platform-accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 0.5rem 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .platform__user { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.2); font-weight: 700; }
+    .platform__section-card {
+      background: var(--platform-surface);
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+      padding: 1.2rem;
+    }
+    .platform__section { display: none; }
+    .platform__section.active { display: block; }
+
+    /* Materiale tabs */
+    .platform__tabs { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
+    .platform__tab {
+      background: #f3e9ff; color: var(--platform-accent);
+      border: 1px solid #e1d4fb; border-radius: 999px; padding: 0.5rem 1rem; cursor: pointer;
+      transition: all 0.2s ease; font-weight: 600;
+    }
+    .platform__tab.is-active { background: var(--platform-accent); color: #fff; border-color: var(--platform-accent); }
+    .platform__tabpanes > div { display: none; }
+    .platform__tabpanes > div.active { display: block; }
+    .platform__links { display: grid; gap: 10px; }
+    .platform__links a { color: var(--platform-accent); text-decoration: none; font-weight: 600; }
+
+    /* Cards grid for Teme */
+    .platform__grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .platform__card {
+      background: #fff; border: 1px solid #ece6f7; border-radius: 14px; padding: 1rem; box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+    }
+    .platform__card h4 { color: var(--platform-text); margin-bottom: 0.4rem; }
+    .platform__meta { color: #6c4f7a; font-size: 0.95rem; }
+
+    /* Teste placeholder */
+    .platform__mcq { display: grid; gap: 10px; }
+    .platform__mcq label { display: flex; gap: 8px; align-items: center; }
+
+    /* Parinti form */
+    .platform__form { display: grid; gap: 12px; }
+    .platform__row { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    .platform__input, .platform__select, .platform__textarea {
+      width: 100%; padding: 0.75rem 0.9rem; border: 1.5px solid #d1c6e6; border-radius: 10px; font-size: 1rem; background: #f8f6ff; color: var(--platform-text);
+    }
+    .platform__textarea { min-height: 110px; resize: vertical; }
+    .platform__submit { background: var(--platform-accent); color: #fff; border: none; border-radius: 10px; padding: 0.9rem 1.4rem; font-weight: 700; cursor: pointer; }
+    .platform__note { font-size: 0.95rem; color: #6c4f7a; margin-top: 8px; }
+
+    /* Auth modal */
+    .auth__overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 1300; }
+    .auth__overlay.open { display: flex; }
+    .auth__card { background: #fff; border-radius: 14px; width: 100%; max-width: 360px; padding: 1.2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+    .auth__title { font-weight: 800; color: var(--platform-accent); margin-bottom: 0.8rem; }
+    .auth__form { display: grid; gap: 10px; }
+    .auth__input { width: 100%; padding: 0.7rem 0.9rem; border: 1.5px solid #d1c6e6; border-radius: 10px; background: #f8f6ff; }
+    .auth__actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+
+    /* Mobile behavior */
+    @media (max-width: 900px) {
+      .platform__topbar { display: flex; }
+      .platform__sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease-out;
+        padding-top: 150px; /* match larger logo */
+      }
+      .platform__sidebar.open { transform: translateX(0); }
+      .platform__main { margin-left: 0; width: 100%; padding-top: 88px; }
+    }
+
+    /* Extra mobile refinements */
+    @media (max-width: 600px) {
+      .platform__container { padding: 0 1rem; }
+      .platform__header { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .platform__title { font-size: 1.4rem; margin-bottom: 0; }
+      .platform__auth { width: 100%; gap: 6px; }
+      .platform__btn, .platform__back { padding: 0.45rem 0.7rem; font-size: 0.95rem; }
+      .platform__section-card { padding: 0.9rem; }
+      .platform__tabs { gap: 6px; }
+      .platform__user { font-size: 0.95rem; }
+      .platform__links a { word-break: break-word; }
+    }
+  </style>
+</head>
+<body class="platform">
+  <div class="platform__topbar">
+    <div class="platform__brand">
+      <img src="images/logo_hero.png" alt="AXCenter" />
+      <span>Platformă</span>
+    </div>
+    <button class="platform__hamburger" id="platformHamburger" aria-label="Deschide meniul" aria-expanded="false">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </div>
+
+  <aside class="platform__sidebar" id="platformSidebar" aria-label="Meniu platformă">
+    <div class="platform__logo"><img src="images/logo_hero.png" alt="AXCenter" /></div>
+    <ul class="platform__nav" role="tablist">
+      <li><button class="is-active" data-target="sect-materiale" role="tab" aria-controls="sect-materiale">Materiale</button></li>
+      <li><button data-target="sect-lectie" role="tab" aria-controls="sect-lectie">Lecția de zi</button></li>
+      <li><button data-target="sect-teme" role="tab" aria-controls="sect-teme">Teme</button></li>
+      <li><button data-target="sect-teste" role="tab" aria-controls="sect-teste">Teste</button></li>
+      <li><button data-target="sect-parinti" role="tab" aria-controls="sect-parinti">Pentru părinți</button></li>
+    </ul>
+  </aside>
+
+  <main class="platform__main">
+    <div class="platform__container">
+      <div class="platform__header">
+        <h1 class="platform__title">AXCenter • Platformă</h1>
+        <div class="platform__auth">
+          <span id="platformUser" class="platform__user" style="display:none"></span>
+          <button id="logoutBtn" class="platform__btn" style="display:none">Delogare</button>
+          <a class="platform__back" href="index.html" aria-label="Înapoi la pagina principală">← Înapoi la site</a>
+        </div>
+      </div>
+
+      <!-- Materiale -->
+      <section id="sect-materiale" class="platform__section active" role="tabpanel">
+        <div class="platform__section-card">
+          <div class="platform__tabs" role="tablist">
+            <button class="platform__tab is-active" data-tab="romana" role="tab" aria-controls="tab-romana">Română</button>
+            <button class="platform__tab" data-tab="matematica" role="tab" aria-controls="tab-matematica">Matematică</button>
+            <button class="platform__tab" data-tab="engleza" role="tab" aria-controls="tab-engleza">Engleză</button>
+          </div>
+          <div class="platform__tabpanes">
+            <div id="tab-romana" class="active">
+              <div class="platform__links" id="pdfList"></div>
+            </div>
+            <div id="tab-matematica">
+              <div class="platform__links"></div>
+            </div>
+            <div id="tab-engleza">
+              <div class="platform__links"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Lecția de zi -->
+      <section id="sect-lectie" class="platform__section" role="tabpanel">
+        <div class="platform__section-card">
+          <h3>Lecția de azi – grupa ta</h3>
+          <div id="dailyLessons" class="platform__links" style="margin-top:10px;"></div>
+        </div>
+      </section>
+
+      <!-- Teme -->
+      <section id="sect-teme" class="platform__section" role="tabpanel">
+        <div class="platform__section-card">
+          <h3>Teme curente</h3>
+          <div id="homeworkGrid" class="platform__grid" style="margin-top:10px;"></div>
+        </div>
+      </section>
+
+      <!-- Teste -->
+      <section id="sect-teste" class="platform__section" role="tabpanel">
+        <div class="platform__section-card">
+          <h3>Teste</h3>
+          <div id="quizList" class="platform__links" style="margin:10px 0 16px 0;"></div>
+          <div id="quizView" class="platform__mcq" style="display:none"></div>
+        </div>
+      </section>
+
+      <!-- Admin -->
+      <section id="sect-admin" class="platform__section" role="tabpanel">
+        <div class="platform__section-card">
+          <h3>Panou Admin</h3>
+          <div class="platform__grid" style="margin-top:10px;">
+            <div class="platform__card">
+              <h4>Creează elev</h4>
+              <div class="platform__form">
+                <a class="platform__submit" href="admin-student.html" style="display:inline-block; text-align:center; text-decoration:none;">Deschide pagina de creare elev</a>
+              </div>
+            </div>
+            <div class="platform__card">
+              <h4>Adaugă materiale</h4>
+              <div class="platform__form">
+                <a class="platform__submit" href="admin-materials.html" style="display:inline-block; text-align:center; text-decoration:none;">Deschide pagina materiale</a>
+              </div>
+            </div>
+            <div class="platform__card">
+              <h4>Adaugă teme</h4>
+              <div class="platform__form">
+                <a class="platform__submit" href="admin-homeworks.html" style="display:inline-block; text-align:center; text-decoration:none;">Deschide pagina teme</a>
+              </div>
+            </div>
+            <div class="platform__card">
+              <h4>Adaugă raport săptămânal</h4>
+              <div class="platform__form">
+                <a class="platform__submit" href="admin-report.html" style="display:inline-block; text-align:center; text-decoration:none;">Deschide pagina raport</a>
+              </div>
+            </div>
+            <div class="platform__card">
+              <h4>Adaugă teste</h4>
+              <div class="platform__form">
+                <a class="platform__submit" href="admin-quizzes.html" style="display:inline-block; text-align:center; text-decoration:none;">Deschide pagina teste</a>
+              </div>
+            </div>
+            <div class="platform__card">
+              <h4>Adaugă lecția de zi</h4>
+              <div class="platform__form">
+                <a class="platform__submit" href="admin-daily-lesson.html" style="display:inline-block; text-align:center; text-decoration:none;">Deschide pagina lecție de zi</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pentru părinți -->
+      <section id="sect-parinti" class="platform__section" role="tabpanel">
+        <div class="platform__section-card">
+          <h3>Rapoartele mele</h3>
+          <div id="parentReports" class="platform__links"></div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <script>
+    const API_BASE = '';
+    let authToken = localStorage.getItem('ax_token') || null;
+    let authUser = null;
+
+    // Sidebar toggle on mobile
+    const sidebar = document.getElementById('platformSidebar');
+    const burger = document.getElementById('platformHamburger');
+    if (burger && sidebar) {
+      burger.addEventListener('click', () => {
+        const isOpen = sidebar.classList.toggle('open');
+        burger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      });
+    }
+
+    // Section switching (event delegation so dynamically added Admin works)
+    const sections = document.querySelectorAll('.platform__section');
+    const navContainer = document.querySelector('.platform__nav');
+    if (navContainer) {
+      navContainer.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-target]');
+        if (!btn) return;
+        navContainer.querySelectorAll('button[data-target]').forEach(b => b.classList.remove('is-active'));
+        btn.classList.add('is-active');
+        const targetId = btn.getAttribute('data-target');
+        sections.forEach(sec => sec.classList.toggle('active', sec.id === targetId));
+        if (targetId === 'sect-admin') renderAdminLists();
+        if (sidebar.classList.contains('open')) sidebar.classList.remove('open');
+      });
+    }
+
+    // Materiale tabs
+    const tabs = document.querySelectorAll('.platform__tab');
+    const panes = document.querySelectorAll('.platform__tabpanes > div');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const name = tab.getAttribute('data-tab');
+        tabs.forEach(t => t.classList.remove('is-active'));
+        tab.classList.add('is-active');
+        panes.forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+      });
+    });
+
+    // ===== Auth UI =====
+    const platformUserEl = document.getElementById('platformUser');
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    function setAuth(token, user) {
+      authToken = token; authUser = user; localStorage.setItem('ax_token', token);
+      platformUserEl.style.display = 'inline';
+      platformUserEl.textContent = `${user.role}: ${user.username}${user.grade ? ' • ' + user.grade : ''}`;
+      if (loginBtn) loginBtn.style.display = 'none';
+      logoutBtn.style.display = 'inline-block';
+      updateAdminVisibility();
+      loadStudentData();
+    }
+    function clearAuth() {
+      authToken = null; authUser = null; localStorage.removeItem('ax_token');
+      platformUserEl.style.display = 'none';
+      platformUserEl.textContent = '';
+      if (loginBtn) loginBtn.style.display = 'inline-block';
+      logoutBtn.style.display = 'none';
+      updateAdminVisibility();
+    }
+
+    async function api(path, options={}) {
+      const headers = options.headers || {};
+      if (authToken) headers['x-auth-token'] = authToken;
+      if (options.body && !(options.body instanceof FormData)) headers['Content-Type'] = 'application/json';
+      const res = await fetch(API_BASE + path, { ...options, headers });
+      if (!res.ok) throw new Error('API error ' + res.status);
+      return res.json();
+    }
+
+    // Login modal (simple prompt for now for speed)
+    // loginBtn now navigates to login.html (no prompt)
+    logoutBtn.addEventListener('click', async () => {
+      try { if (authToken) await api('/api/auth/logout', { method: 'POST' }); } catch(e){}
+      clearAuth();
+      window.location.replace('login.html');
+    });
+
+    // Show Admin tab only for admins
+    function updateAdminVisibility() {
+      const adminNav = document.querySelector('[data-target="sect-admin"]')?.parentElement;
+      if (!adminNav) return;
+      if (authUser?.role === 'admin') adminNav.style.display = '';
+      else adminNav.style.display = 'none';
+    }
+
+    // ===== Data loaders =====
+    async function loadPDFs() {
+      if (!authToken) return;
+      const contRom = document.querySelector('#tab-romana .platform__links');
+      const contMat = document.querySelector('#tab-matematica .platform__links');
+      const contEng = document.querySelector('#tab-engleza .platform__links');
+      if (contRom) contRom.innerHTML = '';
+      if (contMat) contMat.innerHTML = '';
+      if (contEng) contEng.innerHTML = '';
+      try {
+        const rows = await api(`/api/pdfs`);
+        for (const r of rows) {
+          const link = `<a href="${API_BASE}${r.file_path}" target="_blank" rel="noopener">${r.title}</a>`;
+          if (r.subject === 'romana' && contRom) contRom.innerHTML += link;
+          else if (r.subject === 'matematica' && contMat) contMat.innerHTML += link;
+          else if (r.subject === 'engleza' && contEng) contEng.innerHTML += link;
+          else if (contRom) contRom.innerHTML += link; // fallback
+        }
+      } catch(e) {}
+    }
+
+    async function loadHomeworks() {
+      if (!authToken || !authUser) return;
+      const grid = document.getElementById('homeworkGrid');
+      if (!grid) return;
+      try {
+        const endpoint = authUser?.role === 'admin' ? '/api/admin/homeworks' : '/api/homeworks';
+        const rows = await api(endpoint);
+        const items = await Promise.all(rows.map(async (r) => {
+          let submitHtml = '';
+          try {
+            if (authUser?.role !== 'admin') {
+              const sub = await api(`/api/homeworks/${r.id}/submission`);
+              if (sub) {
+                submitHtml = `<div class=\"platform__meta\" style=\"margin-top:6px;\">Trimis: <a href=\"${API_BASE}${sub.file_path}\" target=\"_blank\">fișier</a> (${sub.created_at})</div>`;
+              } else {
+                submitHtml = `<form data-submit-hw=\"${r.id}\" class=\"platform__form\" style=\"margin-top:8px;\"><input class=\"platform__input\" type=\"file\" name=\"file\" accept=\"application/pdf\"><button class=\"platform__submit\" type=\"submit\">Încarcă soluția</button></form>`;
+              }
+            }
+          } catch(e) {}
+          let adminBlock = '';
+          if (authUser?.role === 'admin') {
+            adminBlock = `<div class=\"platform__meta\" style=\"margin-top:6px;\"><a href=\"#\" data-view-subm=\"${r.id}\">Vezi trimiteri</a></div><div class=\"platform__links\" data-subm-list=\"${r.id}\" style=\"display:none; margin-top:6px;\"></div>`;
+          }
+          return `
+          <div class=\"platform__card\">
+            <h4>${r.title}</h4>
+            <div class=\"platform__meta\">Termen: ${r.due_date || '-'} • Clasa: ${r.grade}${r.group_name ? ' • ' + r.group_name : ''}</div>
+            ${r.pdf_path ? `<div style=\"margin-top:6px;\"><a href=\"${API_BASE}${r.pdf_path}\" target=\"_blank\">Deschide PDF</a></div>` : ''}
+            ${submitHtml}
+            ${adminBlock}
+          </div>`;
+        }));
+        grid.innerHTML = items.join('');
+        if (authUser?.role !== 'admin') {
+          grid.querySelectorAll('[data-submit-hw]').forEach(form => {
+            form.addEventListener('submit', async (e) => {
+              e.preventDefault();
+              const id = form.getAttribute('data-submit-hw');
+              const fd = new FormData(form);
+              if (!fd.get('file')) { alert('Alegeți un PDF.'); return; }
+              try { await api(`/api/homeworks/${id}/submit`, { method: 'POST', body: fd }); alert('Temă trimisă'); loadHomeworks(); } catch(e){ alert('Eroare trimitere'); }
+            });
+          });
+        }
+        if (authUser?.role === 'admin') {
+          grid.querySelectorAll('[data-view-subm]').forEach(link => {
+            link.addEventListener('click', async (e) => {
+              e.preventDefault();
+              const id = link.getAttribute('data-view-subm');
+              const container = grid.querySelector(`[data-subm-list=\"${id}\"]`);
+              if (!container) return;
+              const isOpen = container.style.display === 'block';
+              if (isOpen) { container.style.display = 'none'; container.innerHTML=''; return; }
+              try {
+                const subs = await api(`/api/admin/homeworks/${id}/submissions`);
+                if (!subs.length) { container.style.display='block'; container.innerHTML = '<div class="platform__meta">Nicio trimitere.</div>'; return; }
+                container.style.display='block';
+                container.innerHTML = subs.map(s => `<a href="${API_BASE}${s.file_path}" target="_blank">#${s.user_id} ${s.username} (${s.grade}) — ${s.created_at}</a>`).join('');
+              } catch(e){ container.style.display='block'; container.innerHTML = '<div class="platform__meta">Eroare încărcare trimiteri.</div>'; }
+            });
+          });
+        }
+      } catch(e) { grid.innerHTML = '<div class="platform__meta">Nu s-au putut încărca temele.</div>'; }
+    }
+
+    async function loadQuizzes() {
+      if (!authToken || !authUser || !authUser.grade) return;
+      const list = document.getElementById('quizList');
+      const view = document.getElementById('quizView');
+      if (list) list.innerHTML = '';
+      view.style.display = 'none'; view.innerHTML = '';
+      try {
+        const rows = await api(`/api/quizzes?grade=${encodeURIComponent(authUser.grade)}`);
+        list.innerHTML = rows.map(q => `<a href="#" data-quiz-id="${q.id}">${q.title}</a>`).join('');
+        list.querySelectorAll('a').forEach(a => a.addEventListener('click', async (e) => {
+          e.preventDefault();
+          const id = a.getAttribute('data-quiz-id');
+          const data = await api(`/api/quizzes/${id}`);
+          renderQuiz(data.quiz, data.questions);
+        }));
+      } catch(e) { if (list) list.innerHTML = '<div class="platform__meta">Nu s-au putut încărca testele.</div>'; }
+    }
+
+    async function renderQuiz(quiz, questions) {
+      const list = document.getElementById('quizList');
+      const view = document.getElementById('quizView');
+      list.innerHTML = '';
+      view.style.display = 'grid';
+      view.innerHTML = `<h4>${quiz.title}</h4>` + questions.map((q, idx) => {
+        const opts = q.options.map((opt, i) => `<label><input type=\"radio\" name=\"q${q.id}\" value=\"${i}\"> ${opt}</label>`).join('');
+        return `<div><p><strong>${idx+1}.</strong> ${q.text}</p>${opts}</div>`;
+      }).join('') + `<button id=\"submitQuiz\" class=\"platform__btn\" style=\"margin-top:10px;\">Trimite</button>`;
+      document.getElementById('submitQuiz').addEventListener('click', async () => {
+        const answers = questions.map(q => {
+          const checked = document.querySelector(`input[name="q${q.id}"]:checked`);
+          return { questionId: q.id, answerIndex: checked ? Number(checked.value) : -1 };
+        });
+        try {
+          const res = await api(`/api/quizzes/${quiz.id}/submit`, { method: 'POST', body: JSON.stringify({ answers }) });
+          alert(`Scor: ${res.score} / ${res.total}`);
+          loadQuizzes();
+        } catch(e) { alert('Trimitere eșuată'); }
+      });
+    }
+
+    async function loadReports() {
+      if (!authToken) return;
+      const list = document.getElementById('parentReports');
+      if (!list) return;
+      try {
+        const rows = await api('/api/my/reports');
+        if (!rows.length) { list.innerHTML = '<div class="platform__meta">Nu există rapoarte.</div>'; return; }
+        list.innerHTML = rows.map(r => `
+          <div>
+            <strong>${r.date || ''}</strong> — prezență: ${r.prezenta || '-'}, lecția: ${r.lectia || '-'}, tema: ${r.tema || '-'}, atenție: ${r.atentie || '-'}, notă: ${r.nota_test || '-'}
+            ${r.observatii ? `<div class="platform__meta">Observații: ${r.observatii}</div>` : ''}
+          </div>
+        `).join('');
+      } catch (e) { list.innerHTML = '<div class="platform__meta">Nu s-au putut încărca rapoartele.</div>'; }
+    }
+
+    async function loadDailyLessons() {
+      if (!authToken) return;
+      const list = document.getElementById('dailyLessons');
+      if (!list) return;
+      try {
+        const rows = await api('/api/daily-lessons');
+        list.innerHTML = rows.map(r => `<a href="${API_BASE}${r.file_path}" target="_blank" rel="noopener">${r.title}${r.date ? ' • ' + r.date : ''}</a>`).join('');
+      } catch(e) { list.innerHTML = ''; }
+    }
+
+    async function loadStudentData() { await loadPDFs(); await loadHomeworks(); await loadQuizzes(); await loadReports(); await loadDailyLessons(); }
+
+    // ===== Admin forms =====
+    async function bindAdminForms() { /* all admin actions now happen on dedicated pages */ }
+
+    // Add Admin tab button lazily
+    (function ensureAdminNav(){
+      const ul = document.querySelector('.platform__nav');
+      if (!ul) return;
+      const exists = ul.querySelector('[data-target="sect-admin"]');
+      if (!exists) {
+        const li = document.createElement('li');
+        li.style.display = 'none';
+        li.innerHTML = '<button data-target="sect-admin" role="tab" aria-controls="sect-admin">Admin</button>';
+        ul.appendChild(li);
+      }
+    })();
+
+    bindAdminForms();
+
+    async function renderAdminLists() {
+      if (authUser?.role !== 'admin') return;
+      try {
+        // Admin panel now shows only navigation buttons; no lists to render.
+      } catch(e) {}
+    }
+
+    // Require valid token: if invalid or missing, send to login.html
+    (async function bootstrap(){
+      if (!authToken) { window.location.replace('login.html'); return; }
+      try {
+        const me = await api('/api/auth/me');
+        platformUserEl.style.display = 'inline';
+        platformUserEl.textContent = `${me.user.role}: ${me.user.username}${me.user.grade ? ' • ' + me.user.grade : ''}`;
+        logoutBtn.style.display = 'inline-block';
+        authUser = me.user;
+        updateAdminVisibility();
+        // If URL asks for admin, open Admin section
+        if (window.location.hash === '#admin') {
+          const adminBtn = document.querySelector('[data-target="sect-admin"]');
+          if (adminBtn) adminBtn.click();
+        }
+        await loadStudentData();
+        renderAdminLists();
+      } catch(e) {
+        clearAuth();
+        window.location.replace('login.html');
+      }
+    })();
+  </script>
+</body>
+</html>
+
+

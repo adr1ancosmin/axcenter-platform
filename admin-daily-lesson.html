@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AXCenter • Lecția de zi</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .wrap { min-height:100vh; padding:80px 16px; display:flex; justify-content:center; }
+    .card { width:100%; max-width:760px; background:rgba(255,255,255,0.95); border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.12); padding:18px; }
+    .title { font-size:1.6rem; font-weight:800; color:#581c67; margin-bottom:12px; }
+    .form { display:grid; gap:12px; }
+    .row { display:grid; gap:10px; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); }
+    .input, .select, .textarea { width:100%; padding:0.8rem 1rem; border:1.5px solid #d1c6e6; border-radius:10px; background:#f8f6ff; font-size:1rem; color:#581c67; }
+    .textarea { min-height:110px; }
+    .submit { background:#581c67; color:#fff; border:none; border-radius:10px; padding:0.9rem 1.2rem; font-weight:700; cursor:pointer; }
+    .link { background:#fff; color:#581c67; border:1px solid rgba(88,28,103,0.25); border-radius:10px; padding:0.6rem 0.9rem; font-weight:700; text-decoration:none; }
+    .actions { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .list { display:grid; gap:8px; margin-top:10px; }
+  </style>
+  <script>
+    const API_BASE = '';
+    let authToken = localStorage.getItem('ax_token') || null;
+    async function api(path, options={}){
+      const headers = options.headers || {};
+      if (authToken) headers['x-auth-token'] = authToken;
+      const isFD = options.body instanceof FormData;
+      if (options.body && !isFD) headers['Content-Type'] = 'application/json';
+      const res = await fetch(API_BASE + path, { ...options, headers });
+      if (!res.ok) throw new Error('API ' + res.status);
+      return res.json();
+    }
+    async function requireAdmin(){
+      if (!authToken) { window.location.replace('login.html'); return false; }
+      try { const me = await fetch(API_BASE + '/api/auth/me', { headers: { 'x-auth-token': authToken }}); if (!me.ok) throw 0; const j = await me.json(); if (j.user?.role !== 'admin') throw 0; return true; } catch(e){ localStorage.removeItem('ax_token'); window.location.replace('login.html'); return false; }
+    }
+    async function loadList(){
+      const q = document.getElementById('lessonSearch')?.value || '';
+      const grade = document.getElementById('lessonFilterGrade')?.value || '';
+      const group = document.getElementById('lessonFilterGroup')?.value || '';
+      const qs = new URLSearchParams();
+      if (q) qs.set('q', q);
+      if (grade) qs.set('grade', grade);
+      if (group) qs.set('group_name', group);
+      const rows = await api('/api/admin/daily-lessons' + (qs.toString() ? ('?' + qs.toString()) : ''));
+      const list = document.getElementById('lessonList');
+      list.innerHTML = rows.map(l => `<div>${l.subject || '-'} • ${l.grade}${l.group_name ? ' • ' + l.group_name : ''}: ${l.title} ${l.date ? '— ' + l.date : ''} <a href="${API_BASE}${l.file_path}" target="_blank">PDF</a> <button data-del-lesson="${l.id}" class="submit" style="padding:0.3rem 0.6rem; margin-left:6px;">Șterge</button></div>`).join('');
+      list.querySelectorAll('[data-del-lesson]').forEach(btn => btn.addEventListener('click', async () => {
+        if (!confirm('Ștergi această lecție?')) return;
+        await api(`/api/admin/daily-lessons/${btn.getAttribute('data-del-lesson')}`, { method:'DELETE' });
+        await loadList();
+      }));
+    }
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!await requireAdmin()) return;
+      const f = document.getElementById('lessonForm');
+      f.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(f);
+        if (!fd.get('group_name')) { alert('Completați grupa (obligatoriu)'); return; }
+        try { await api('/api/admin/daily-lessons', { method:'POST', body: fd }); alert('Lecție încărcată'); f.reset(); loadList(); } catch(e){ alert('Eroare'); }
+      });
+      const btn = document.getElementById('lessonSearchBtn');
+      if (btn) btn.addEventListener('click', loadList);
+      loadList();
+    });
+  </script>
+</head>
+<body>
+  <section class="wrap">
+    <div class="card">
+      <div class="actions">
+        <a class="link" href="platforma.html#admin">← Înapoi la panoul admin</a>
+      </div>
+      <h1 class="title">Adaugă lecția de zi</h1>
+      <form id="lessonForm" class="form">
+        <div class="row">
+          <select class="select" name="subject">
+            <option value="">Materia…</option>
+            <option value="romana">Română</option>
+            <option value="matematica">Matematică</option>
+            <option value="engleza">Engleză</option>
+          </select>
+          <input class="input" name="grade" placeholder="Clasa (ex: clasa-5)">
+          <input class="input" name="group_name" placeholder="Grupa">
+        </div>
+        <input class="input" name="title" placeholder="Titlu">
+        <textarea class="textarea" name="description" placeholder="Descriere (opțional)"></textarea>
+        <div class="row">
+          <input class="input" name="date" type="date" placeholder="Data (opțional)">
+          <input class="input" name="file" type="file" accept="application/pdf">
+        </div>
+        <div class="actions"><button class="submit" type="submit">Încarcă lecție</button></div>
+      </form>
+      <div class="row" style="margin-top:10px;">
+        <input class="input" id="lessonSearch" placeholder="Caută după titlu">
+        <input class="input" id="lessonFilterGrade" placeholder="Clasa (ex: clasa-5)">
+        <input class="input" id="lessonFilterGroup" placeholder="Grupa (ex: grupa-A)">
+        <button class="submit" id="lessonSearchBtn" type="button">Caută</button>
+      </div>
+      <div id="lessonList" class="list"></div>
+    </div>
+  </section>
+</body>
+</html>
+
+

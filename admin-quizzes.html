@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AXCenter • Teste</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .wrap { min-height:100vh; padding:80px 16px; display:flex; justify-content:center; }
+    .card { width:100%; max-width:860px; background:rgba(255,255,255,0.95); border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.12); padding:18px; }
+    .title { font-size:1.6rem; font-weight:800; color:#581c67; margin-bottom:12px; }
+    .form { display:grid; gap:12px; }
+    .row { display:grid; gap:10px; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); }
+    .input, .select, .textarea { width:100%; padding:0.8rem 1rem; border:1.5px solid #d1c6e6; border-radius:10px; background:#f8f6ff; font-size:1rem; color:#581c67; }
+    .submit { background:#581c67; color:#fff; border:none; border-radius:10px; padding:0.9rem 1.2rem; font-weight:700; cursor:pointer; }
+    .link { background:#fff; color:#581c67; border:1px solid rgba(88,28,103,0.25); border-radius:10px; padding:0.6rem 0.9rem; font-weight:700; text-decoration:none; }
+    .actions { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .list { display:grid; gap:8px; margin-top:10px; }
+  </style>
+  <script>
+    const API_BASE = '';
+    let authToken = localStorage.getItem('ax_token') || null;
+    async function api(path, options={}){
+      const headers = options.headers || {};
+      if (authToken) headers['x-auth-token'] = authToken;
+      if (options.body && !(options.body instanceof FormData)) headers['Content-Type'] = 'application/json';
+      const res = await fetch(API_BASE + path, { ...options, headers });
+      if (!res.ok) throw new Error('API ' + res.status);
+      return res.json();
+    }
+    async function requireAdmin(){
+      if (!authToken) { window.location.replace('login.html'); return false; }
+      try { const me = await fetch(API_BASE + '/api/auth/me', { headers: { 'x-auth-token': authToken }}); if (!me.ok) throw 0; const j = await me.json(); if (j.user?.role !== 'admin') throw 0; return true; } catch(e){ localStorage.removeItem('ax_token'); window.location.replace('login.html'); return false; }
+    }
+    async function loadList(){
+      const rows = await api('/api/admin/quizzes');
+      const list = document.getElementById('quizList');
+      list.innerHTML = rows.map(q => `<div>${q.subject || '-'} • ${q.grade}${q.group_name ? ' • ' + q.group_name : ''}: ${q.title} (ID: ${q.id}) <button data-del-quiz="${q.id}" class="submit" style="padding:0.3rem 0.6rem; margin-left:6px;">Șterge</button></div>`).join('');
+      list.querySelectorAll('[data-del-quiz]').forEach(btn => btn.addEventListener('click', async () => {
+        if (!confirm('Ștergi acest quiz?')) return;
+        await api(`/api/admin/quizzes/${btn.getAttribute('data-del-quiz')}`, { method:'DELETE' });
+        await loadList();
+      }));
+    }
+    async function deleteAll(){
+      if (!confirm('Ștergi toate quizurile? Această acțiune nu poate fi anulată.')) return;
+      await api('/api/admin/quizzes', { method:'DELETE' });
+      await loadList();
+    }
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!await requireAdmin()) return;
+      const f = document.getElementById('quizForm');
+      f.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(f));
+        try { const out = await api('/api/admin/quizzes', { method:'POST', body: JSON.stringify(data) }); alert('Quiz creat ID=' + out.id); f.reset(); loadList(); } catch(e){ alert('Eroare creare quiz'); }
+      });
+      const fq = document.getElementById('questionForm');
+      fq.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(fq));
+        const payload = { text: data.text, options: (data.options||'').split(',').map(s=>s.trim()).filter(Boolean), correctIndex: Number(data.correctIndex) };
+        try { await api(`/api/admin/quizzes/${encodeURIComponent(data.quizId)}/questions`, { method:'POST', body: JSON.stringify(payload) }); alert('Întrebare adăugată'); fq.reset(); loadList(); } catch(e){ alert('Eroare adăugare întrebare'); }
+      });
+      const delAllBtn = document.getElementById('deleteAllQuizzes');
+      if (delAllBtn) delAllBtn.addEventListener('click', deleteAll);
+      loadList();
+    });
+  </script>
+</head>
+<body>
+  <section class="wrap">
+    <div class="card">
+      <div class="actions">
+        <a class="link" href="platforma.html#admin">← Înapoi la panoul admin</a>
+      </div>
+      <h1 class="title">Adaugă teste</h1>
+      <form id="quizForm" class="form">
+        <div class="row">
+          <select class="select" name="subject">
+            <option value="">Materia…</option>
+            <option value="romana">Română</option>
+            <option value="matematica">Matematică</option>
+            <option value="engleza">Engleză</option>
+          </select>
+          <input class="input" name="grade" placeholder="Clasa (ex: clasa-5)">
+          <input class="input" name="group_name" placeholder="Grupa (opțional)">
+        </div>
+        <input class="input" name="title" placeholder="Titlu quiz">
+        <div class="actions"><button class="submit" type="submit">Creează quiz</button></div>
+      </form>
+      <form id="questionForm" class="form" style="margin-top:8px;">
+        <div class="row">
+          <input class="input" name="quizId" placeholder="Quiz ID">
+          <input class="input" name="text" placeholder="Întrebare">
+        </div>
+        <input class="input" name="options" placeholder="Opțiuni separate prin virgulă">
+        <input class="input" name="correctIndex" placeholder="Index corect (0-based)">
+        <div class="actions"><button class="submit" type="submit">Adaugă întrebare</button></div>
+      </form>
+      <div class="actions" style="margin-top:8px; justify-content:flex-end;">
+        <button id="deleteAllQuizzes" class="submit" type="button">Șterge toate quizurile</button>
+      </div>
+      <div id="quizList" class="list"></div>
+    </div>
+  </section>
+</body>
+</html>
+
+

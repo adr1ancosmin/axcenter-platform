@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AXCenter</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <!-- Logo -->
+      <a href="/" class="navbar__logo">
+        <img src="images/logo_purple_transparent_long.png" alt="Logo" />
+      </a>
+
+      <!-- Nav links -->
+      <ul class="navbar__menu">
+        <li class="navbar__menu-cta"><a href="login.html">PLATFORMA</a></li>
+        <li class="navbar__menu-cta navbar__menu-cta--join"><a href="#contact">Alătură-te</a></li>
+        <li><a href="/">Acasă</a></li>
+        <li><a href="#povestea-noastra">Despre Noi</a></li>
+        <li><a href="#servicii">Servicii & Prețuri</a></li>
+        <li><a href="#contact">Contact & Locație</a></li>
+      </ul>
+      <button class="navbar__hamburger" id="navbarHamburger" aria-label="Meniu" aria-expanded="false">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <a href="login.html" class="navbar__cta">PLATFORMA</a>
+      <a href="#contact" class="navbar__cta">Alătură-te</a>
+    </div>
+  </nav>
+
+  <!-- Hero Section - Main landing area of the website -->
+  <section class="hero">
+    <!-- Container to center and constrain the hero content -->
+    <div class="hero__container">
+      <!-- Left side: Large centered logo -->
+      <div class="hero__logo">
+        <img src="images/logo.png" alt="Company Logo" />
+      </div>
+      
+      <!-- Right side: Text content -->
+      <div class="hero__content">
+        <h1 class="hero__title">E tot ce ne-am fi dorit noi să avem.</h1>
+        <p class="hero__description">
+          Nu promitem să-ți placă <span id="typewriter"></span>
+        </p>
+        <button class="hero__button">Alătură-te ACUM!</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Povestea Noastra Section - Similar to hero, but text left, image right -->
+  <section class="story" id="povestea-noastra">
+    <div class="story__container">
+      <!-- Left side: Text content -->
+      <div class="story__content">
+        <h2 class="story__title">Povestea Noastră</h2>
+        <p class="story__description">
+            "După ani de experiență în domeniu, 
+            am decis să deschidem propriul centru de 
+            meditații și activități extra-școlare, unde 
+            combinăm tot ce am învățat de-a lungul anilor: 
+            explicații clare, metode interactive și o 
+            atmosferă relaxantă, ideală pentru învățat."
+        </p>
+        <p class="instagram__link">
+          <a href="https://www.instagram.com/cristina.floreaa/" target="_blank" rel="noopener noreferrer">@cristina.floreaa</a> & <a href="https://www.instagram.com/adriancosm1n/" target="_blank" rel="noopener noreferrer">@adriancosm1n</a>
+        </p>
+      </div>
+      <!-- Right side: Image -->
+      <div class="story__image">
+        <img src="images/despre_noi.png" alt="Despre Noi" />
+      </div>
+    </div>
+  </section>
+
+  <!-- Servicii Section -->
+  <section class="servicii" id="servicii">
+    <div class="servicii__container">
+      <h2 class="servicii__title">Servicii & Prețuri</h2>
+      
+      <!-- Tutoring Programs -->
+      <div class="servicii__section">
+        <h3 class="servicii__section-title">📚 Programe de Meditații</h3>
+        <div class="servicii__tutoring-container">
+          <div class="servicii__tutoring-content">
+            <div class="servicii__card servicii__card--tutoring">
+              <div class="servicii__card-header">
+                <h4>Meditații Personalizate</h4>
+                <div class="servicii__price">150 RON / 2h</div>
+              </div>
+              <div class="servicii__card-content">
+                <div class="servicii__subjects">
+                  <h5>Materii Disponibile:</h5>
+                  <ul>
+                    <li>📖 Limba și Literatura Română</li>
+                    <li>🔢 Matematică</li>
+                    <li>🌍 Engleză</li>
+                    <li>📚 Și multe altele...</li>
+                  </ul>
+                </div>
+                <div class="servicii__features">
+                  <h5>Ce oferim:</h5>
+                  <ul>
+                    <li>✅ Exerciții bazate pe modele reale de examene</li>
+                    <li>✅ Echipă tânără și dinamică</li>
+                    <li>✅ Resurse interactive și aplicații digitale</li>
+                    <li>✅ Planuri de studiu personalizate</li>
+                    <li>✅ Evaluări regulate pentru progres</li>
+                    <li>✅ Platformă online disponibilă 24/7</li>
+                  </ul>
+                  <h5>Cum decurge o sedinta de pregatire:</h5>
+                  <ul>
+                    <li> 📝 Test de verificare - elevii rezolvă un test scurt pe baza lectiei predate anterior 🟰 10 min</li>
+                    <li> 📚 Predare materie noua - profesorul introduce noul capitol prin explicatii clare si exemple practice 🟰 30 min</li>
+                    <li> ✏️ Aplicatii de baza - elevii lucreaza probleme esentiale menite sa consolideze rapid notiunile predate 🟰 40 min</li>
+                    <li> 🎯 Exercitii tip examen - elevii rezolvă exercitii si subiecte model pregatite exact pentru examen 🟰 40 min, deci in total 2 ore 🎉</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+      </div>
+
+      <!-- Workshops -->
+      <div class="servicii__section">
+        <h3 class="servicii__section-title">🎨 Ateliere pentru Copii</h3>
+        <div class="servicii__grid">
+          <div class="servicii__card servicii__card--workshop">
+            <div class="servicii__card-header">
+              <h4>🎨 Atelier de Decorațiuni din Fetru</h4>
+              <div class="servicii__price">50 RON / 1h</div>
+            </div>
+            <div class="servicii__card-content">
+              <p>Copiii creează decorațiuni folosind fetru, încurajând creativitatea și dexteritatea manuală.</p>
+            </div>
+          </div>
+
+          <div class="servicii__card servicii__card--workshop">
+            <div class="servicii__card-header">
+              <h4>🤖 Atelier de Robotică STEM</h4>
+              <div class="servicii__price">50 RON / 1h</div>
+            </div>
+            <div class="servicii__card-content">
+              <p>Copiii construiesc și programează proprii roboți simpli, învățând tehnologia prin joc.</p>
+            </div>
+          </div>
+
+          <div class="servicii__card servicii__card--workshop">
+            <div class="servicii__card-header">
+              <h4>🖌️Atelier de Pictură</h4>
+              <div class="servicii__price">50 RON / 1h</div>
+            </div>
+            <div class="servicii__card-content">
+              <p>Arte cu tematică de vară cu pensule și culori strălucitoare (fructe, zâmbete, soare).</p>
+            </div>
+          </div>
+        </div>
+        <div class="servicii__workshop-image">
+          <img src="images/servicii/ateliere.png" alt="Ateliere pentru Copii" class="servicii__main-image">
+        </div>
+      </div>
+
+      <!-- Online Platform Info -->
+      <div class="servicii__platform">
+        <div class="servicii__platform-content">
+          <h3>💻 Platformă Online și 🚗 Transport garantat ✅</h3>
+          <p>Platforma este disponibilă 24/7 pentru elevi și părinți, 
+            oferind materiale, teste și rapoarte de progres, iar transportul este contra-cost.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact Section -->
+  <section class="contact" id="contact">
+    <div class="contact__container">
+      <h2 class="contact__title">Contact</h2>
+      <div class="contact__info">
+        <div><strong>Telefon:</strong> 0720 243 014</div>
+        <div><strong>Email:</strong> axcentermeditatii@gmail.com</div>
+        <div><strong>Adresă:</strong> Strada Aleea Bistricioara, nr. 8, București, Sector 2</div>
+        <div> 📍 in apropiere de Doamna Ghica | Mega Mall | Obor</div>
+
+        <div class="social-links">
+          <a href="https://www.facebook.com/people/AXCenter/61578085569592/" target="_blank" rel="noopener noreferrer" class="social-link facebook">
+            <span class="social-icon">📘</span>
+            <span>Facebook</span>
+          </a>
+          <a href="https://www.instagram.com/axcenter_" target="_blank" rel="noopener noreferrer" class="social-link instagram">
+            <span class="social-icon">📷</span>
+            <span>Instagram</span>
+          </a>
+          <a href="https://www.tiktok.com/@axcenter_" target="_blank" rel="noopener noreferrer" class="social-link tiktok">
+            <span class="social-icon">🎵</span>
+            <span>TikTok</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="app.js"></script>
+  
+  <!-- Footer Section -->
+  <footer class="footer">
+    <div class="footer__container">
+      <div class="footer__info">
+        &copy; 2025 AXCenter S.R.L. Toate drepturile rezervate.<br>
+      </div>
+      <div class="footer__links">
+        <a href="#servicii">Servicii</a>
+        <a href="#povestea-noastra">Despre Noi</a>
+        <a href="#extra-activities">Activități</a>
+        <a href="#contact">Contact</a>
+        <a href="termeni.html">Termeni și Condiții</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

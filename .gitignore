@@ -1,0 +1,18 @@
+@"
+# Node
+**/node_modules/
+**/npm-debug.log*
+**/yarn.lock
+**/package-lock.json
+
+# Local uploads and DB
+server/uploads/
+server/data.db
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+
+# Netlify build cache
+.netlify/
+"@ | Out-File -Encoding utf8 .gitignore

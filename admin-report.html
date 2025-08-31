@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AXCenter • Raport săptămânal</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .wrap { min-height:100vh; padding:80px 16px; display:flex; justify-content:center; }
+    .card { width:100%; max-width:760px; background:rgba(255,255,255,0.95); border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.12); padding:18px; }
+    .title { font-size:1.6rem; font-weight:800; color:#581c67; margin-bottom:12px; }
+    .form { display:grid; gap:12px; }
+    .row { display:grid; gap:10px; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); }
+    .input, .select { width:100%; padding:0.8rem 1rem; border:1.5px solid #d1c6e6; border-radius:10px; background:#f8f6ff; font-size:1rem; color:#581c67; }
+    .submit { background:#581c67; color:#fff; border:none; border-radius:10px; padding:0.9rem 1.2rem; font-weight:700; cursor:pointer; }
+    .link { background:#fff; color:#581c67; border:1px solid rgba(88,28,103,0.25); border-radius:10px; padding:0.6rem 0.9rem; font-weight:700; text-decoration:none; }
+    .actions { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .list { margin-top:10px; display:grid; gap:8px; }
+    .item { background:#fff; border:1px solid #ece6f7; border-radius:10px; padding:10px; }
+  </style>
+  <script>
+    const API_BASE = '';
+    let authToken = localStorage.getItem('ax_token') || null;
+    async function api(path, options={}){
+      const headers = options.headers || {};
+      if (authToken) headers['x-auth-token'] = authToken;
+      if (options.body && !(options.body instanceof FormData)) headers['Content-Type'] = 'application/json';
+      const res = await fetch(API_BASE + path, { ...options, headers });
+      if (!res.ok) throw new Error('API ' + res.status);
+      return res.json();
+    }
+    async function requireAdmin(){
+      if (!authToken) { window.location.replace('login.html'); return false; }
+      try { const me = await fetch(API_BASE + '/api/auth/me', { headers: { 'x-auth-token': authToken }}); if (!me.ok) throw 0; const j = await me.json(); if (j.user?.role !== 'admin') throw 0; return true; } catch(e){ localStorage.removeItem('ax_token'); window.location.replace('login.html'); return false; }
+    }
+    async function loadStudents(){
+      const rows = await api('/api/admin/users');
+      const sel = document.getElementById('studentSelect');
+      sel.innerHTML = '<option value="">Alege elev…</option>' + rows.map(s => `<option value="${s.id}">#${s.id} • ${s.username}</option>`).join('');
+      const filterSel = document.getElementById('reportFilterStudent');
+      if (filterSel) filterSel.innerHTML = '<option value="">Toți elevii</option>' + rows.map(s => `<option value="${s.id}">#${s.id} • ${s.username}</option>`).join('');
+      const list = document.getElementById('reportsList');
+      list.innerHTML = '';
+    }
+    async function loadAllReports(userId){
+      const q = userId ? (`?user_id=${encodeURIComponent(userId)}`) : '';
+      const rows = await api('/api/admin/reports' + q);
+      const list = document.getElementById('reportsList');
+      list.innerHTML = rows.map(r => `<div class=\"item\"><strong>${r.username}</strong> — ${r.date || ''} • prezenta: ${r.prezenta || '-'}, lectia: ${r.lectia || '-'}, tema: ${r.tema || '-'}, atenție: ${r.atentie || '-'}, notă: ${r.nota_test || '-'}${r.observatii ? `<div class=\\\"note\\\">Obs: ${r.observatii}</div>` : ''} <button data-del-report=\"${r.id}\" class=\"submit\" style=\"padding:0.3rem 0.6rem; margin-left:6px;\">Șterge</button></div>`).join('');
+      list.querySelectorAll('[data-del-report]').forEach(btn => btn.addEventListener('click', async () => {
+        if (!confirm('Ștergi acest raport?')) return;
+        await api(`/api/admin/reports/${btn.getAttribute('data-del-report')}`, { method: 'DELETE' });
+        await loadAllReports(document.getElementById('reportFilterStudent')?.value || null);
+      }));
+    }
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!await requireAdmin()) return;
+      await loadStudents();
+      await loadAllReports();
+      const f = document.getElementById('reportForm');
+      f.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(f));
+        try { await api('/api/admin/reports', { method:'POST', body: JSON.stringify(data) }); alert('Raport salvat'); f.reset(); await loadAllReports(document.getElementById('reportFilterStudent')?.value || null); } catch(e){ alert('Eroare'); }
+      });
+      const filterSel = document.getElementById('reportFilterStudent');
+      if (filterSel) filterSel.addEventListener('change', () => loadAllReports(filterSel.value || null));
+    });
+  </script>
+</head>
+<body>
+  <section class="wrap">
+    <div class="card">
+      <div class="actions">
+        <a class="link" href="platforma.html#admin">← Înapoi la panoul admin</a>
+      </div>
+      <h1 class="title">Adaugă raport săptămânal</h1>
+      <form id="reportForm" class="form">
+        <div class="row">
+          <select class="select" name="user_id" id="studentSelect">
+            <option value="">Alege elev…</option>
+          </select>
+          <input class="input" name="date" type="date" placeholder="Data">
+        </div>
+        <div class="row">
+          <input class="input" name="prezenta" placeholder="Prezență">
+          <input class="input" name="lectia" placeholder="Lecția">
+        </div>
+        <div class="row">
+          <input class="input" name="tema" placeholder="Tema realizată">
+          <input class="input" name="atentie" placeholder="Nivel atenție">
+        </div>
+        <div class="row">
+          <input class="input" name="nota_test" type="number" min="1" max="10" placeholder="Nota test">
+          <input class="input" name="observatii" placeholder="Observații">
+        </div>
+        <div class="actions"><button class="submit" type="submit">Salvează raport</button></div>
+      </form>
+      <div class="row" style="margin-top:10px;">
+        <select id="reportFilterStudent" class="select">
+          <option value="">Toți elevii</option>
+        </select>
+      </div>
+      <div id="reportsList" class="list"></div>
+    </div>
+  </section>
+</body>
+</html>
+
+

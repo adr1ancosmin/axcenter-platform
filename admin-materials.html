@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AXCenter • Materiale</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .wrap { min-height:100vh; padding:80px 16px; display:flex; justify-content:center; }
+    .card { width:100%; max-width:720px; background:rgba(255,255,255,0.95); border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.12); padding:18px; }
+    .title { font-size:1.6rem; font-weight:800; color:#581c67; margin-bottom:12px; }
+    .form { display:grid; gap:12px; }
+    .row { display:grid; gap:10px; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); }
+    .input, .select, .textarea { width:100%; padding:0.8rem 1rem; border:1.5px solid #d1c6e6; border-radius:10px; background:#f8f6ff; font-size:1rem; color:#581c67; }
+    .textarea { min-height:110px; }
+    .submit { background:#581c67; color:#fff; border:none; border-radius:10px; padding:0.9rem 1.2rem; font-weight:700; cursor:pointer; }
+    .link { background:#fff; color:#581c67; border:1px solid rgba(88,28,103,0.25); border-radius:10px; padding:0.6rem 0.9rem; font-weight:700; text-decoration:none; }
+    .actions { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .list { margin-top:10px; display:grid; gap:8px; }
+  </style>
+  <script>
+    const API_BASE = '';
+    let authToken = localStorage.getItem('ax_token') || null;
+    async function api(path, options={}){
+      const headers = options.headers || {};
+      if (authToken) headers['x-auth-token'] = authToken;
+      const isFD = options.body instanceof FormData;
+      if (options.body && !isFD) headers['Content-Type'] = 'application/json';
+      const res = await fetch(API_BASE + path, { ...options, headers });
+      if (!res.ok) throw new Error('API ' + res.status);
+      return res.json();
+    }
+    async function requireAdmin(){
+      if (!authToken) { window.location.replace('login.html'); return false; }
+      try {
+        const me = await fetch(API_BASE + '/api/auth/me', { headers: { 'x-auth-token': authToken }});
+        if (!me.ok) throw 0; const j = await me.json(); if (j.user?.role !== 'admin') throw 0; return true;
+      } catch(e){ localStorage.removeItem('ax_token'); window.location.replace('login.html'); return false; }
+    }
+    async function loadList(){
+      const list = document.getElementById('materialsList');
+      list.innerHTML = '';
+      const q = document.getElementById('materialsSearch')?.value || '';
+      const subject = document.getElementById('materialsFilterSubject')?.value || '';
+      const grade = document.getElementById('materialsFilterGrade')?.value || '';
+      const qs = new URLSearchParams();
+      if (q) qs.set('q', q);
+      if (subject) qs.set('subject', subject);
+      if (grade) qs.set('grade', grade);
+      const rows = await api('/api/admin/pdfs' + (qs.toString() ? ('?' + qs.toString()) : ''));
+      list.innerHTML = rows.map(r => `<div>${r.subject || '-'} • ${r.grade}: ${r.title} ${r.description ? '— ' + r.description : ''} <a href="${API_BASE}${r.file_path}" target="_blank">PDF</a> <button data-del-pdf="${r.id}" class="submit" style="padding:0.3rem 0.6rem; margin-left:6px;">Șterge</button></div>`).join('');
+      list.querySelectorAll('[data-del-pdf]').forEach(btn => btn.addEventListener('click', async () => {
+        if (!confirm('Ștergi acest material?')) return;
+        await api(`/api/admin/pdfs/${btn.getAttribute('data-del-pdf')}`, { method:'DELETE' });
+        await loadList();
+      }));
+    }
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!await requireAdmin()) return;
+      const f = document.getElementById('materialsForm');
+      f.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(f);
+        try { await api('/api/admin/pdfs', { method:'POST', body: fd }); alert('Material încărcat'); f.reset(); loadList(); } catch(e){ alert('Eroare'); }
+      });
+      const btn = document.getElementById('materialsSearchBtn');
+      if (btn) btn.addEventListener('click', loadList);
+      loadList();
+    });
+  </script>
+</head>
+<body>
+  <section class="wrap">
+    <div class="card">
+      <div class="actions">
+        <a class="link" href="platforma.html#admin">← Înapoi la panoul admin</a>
+      </div>
+      <h1 class="title">Adaugă materiale</h1>
+      <form id="materialsForm" class="form">
+        <div class="row">
+          <select class="select" name="subject">
+            <option value="">Materia…</option>
+            <option value="romana">Română</option>
+            <option value="matematica">Matematică</option>
+            <option value="engleza">Engleză</option>
+          </select>
+          <input class="input" name="grade" placeholder="Clasa (ex: clasa-5)">
+        </div>
+        <input class="input" name="title" placeholder="Titlu">
+        <textarea class="textarea" name="description" placeholder="Descriere (opțional)"></textarea>
+        <input class="input" name="file" type="file" accept="application/pdf">
+        <div class="actions"><button class="submit" type="submit">Încarcă</button></div>
+      </form>
+      <div class="row" style="margin-top:10px;">
+        <input class="input" id="materialsSearch" placeholder="Caută după titlu">
+        <select class="select" id="materialsFilterSubject">
+          <option value="">Materia</option>
+          <option value="romana">Română</option>
+          <option value="matematica">Matematică</option>
+          <option value="engleza">Engleză</option>
+        </select>
+        <input class="input" id="materialsFilterGrade" placeholder="Clasa (ex: clasa-5)">
+        <button class="submit" id="materialsSearchBtn" type="button">Caută</button>
+      </div>
+      <div id="materialsList" class="list"></div>
+    </div>
+  </section>
+</body>
+</html>
+
+

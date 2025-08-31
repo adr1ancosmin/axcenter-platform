@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AXCenter • Autentificare</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .login {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 60px 16px;
+    }
+    .login__card {
+      width: 100%; max-width: 420px;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(8px);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+      padding: 22px 20px;
+    }
+    .login__title { font-size: 1.6rem; font-weight: 800; color: #581c67; margin-bottom: 10px; text-align:center; }
+    .login__form { display: grid; gap: 12px; }
+    .login__input { width: 100%; padding: 0.8rem 1rem; border: 1.5px solid #d1c6e6; border-radius: 10px; background:#f8f6ff; font-size: 1rem; color:#581c67; }
+    .login__submit { background:#581c67; color:#fff; border:none; border-radius:10px; padding:0.9rem 1.2rem; font-weight:700; cursor:pointer; }
+    .login__submit:hover { background:#7a3490; }
+    .login__error { color:#a3123a; font-weight:700; min-height: 1.2em; text-align:center; }
+    .login__links { margin-top: 10px; text-align:center; }
+    .login__links a { color:#581c67; text-decoration:none; font-weight:700; }
+    .login__links a:hover { text-decoration:underline; }
+  </style>
+  <script>
+    const API_BASE = '';
+    async function apiLogin(username, password) {
+      const res = await fetch(API_BASE + '/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      if (!res.ok) throw new Error('Login failed');
+      return res.json();
+    }
+    async function validateTokenAndRedirect(token) {
+      try {
+        const res = await fetch(API_BASE + '/api/quizzes', { headers: { 'x-auth-token': token } });
+        if (res.ok) {
+          window.location.replace('platforma.html');
+          return true;
+        }
+      } catch (e) {}
+      return false;
+    }
+    async function handleLogin(e) {
+      e.preventDefault();
+      const form = e.target;
+      const username = form.username.value.trim();
+      const password = form.password.value.trim();
+      const errorEl = document.getElementById('loginError');
+      errorEl.textContent = '';
+      if (!username || !password) { errorEl.textContent = 'Completați username și parola.'; return; }
+      try {
+        const out = await apiLogin(username, password);
+        localStorage.setItem('ax_token', out.token);
+        window.location.href = 'platforma.html';
+      } catch (e) {
+        errorEl.textContent = 'Date incorecte. Încercați din nou.';
+      }
+    }
+    document.addEventListener('DOMContentLoaded', async () => {
+      const token = localStorage.getItem('ax_token');
+      if (token) {
+        const ok = await validateTokenAndRedirect(token);
+        if (!ok) localStorage.removeItem('ax_token');
+      }
+      const f = document.getElementById('loginForm');
+      if (f) f.addEventListener('submit', handleLogin);
+    });
+  </script>
+</head>
+<body>
+  <section class="login">
+    <div class="login__card">
+      <div style="text-align:center; margin-bottom: 10px;">
+        <img src="images/logo_purple_transparent_long.png" alt="AXCenter" style="height:50px; width:auto;"/>
+      </div>
+      <h1 class="login__title">Autentificare</h1>
+      <form id="loginForm" class="login__form">
+        <input class="login__input" name="username" placeholder="Username" autocomplete="username" />
+        <input class="login__input" type="password" name="password" placeholder="Parola" autocomplete="current-password" />
+        <button class="login__submit" type="submit">Intră în platformă</button>
+        <div id="loginError" class="login__error"></div>
+      </form>
+      <div class="login__links">
+        <a href="index.html">← Înapoi la site</a>
+      </div>
+    </div>
+  </section>
+</body>
+</html>
+
+

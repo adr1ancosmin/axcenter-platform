@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AXCenter • Creare Elev</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .admin-student { min-height: 100vh; padding: 80px 16px; display:flex; align-items:flex-start; justify-content:center; }
+    .card { width: 100%; max-width: 720px; background: rgba(255,255,255,0.95); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.12); padding: 18px; }
+    .title { font-size: 1.6rem; font-weight: 800; color: #581c67; margin-bottom: 12px; }
+    .form { display: grid; gap: 12px; }
+    .row { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    .input, .select { width: 100%; padding: 0.8rem 1rem; border: 1.5px solid #d1c6e6; border-radius: 10px; background:#f8f6ff; font-size: 1rem; color:#581c67; }
+    .submit { background:#581c67; color:#fff; border:none; border-radius:10px; padding:0.9rem 1.2rem; font-weight:700; cursor:pointer; }
+    .actions { display:flex; gap:8px; justify-content:space-between; align-items:center; }
+    .link { background:#fff; color:#581c67; border:1px solid rgba(88,28,103,0.25); border-radius:10px; padding:0.6rem 0.9rem; font-weight:700; text-decoration:none; }
+    .error { color:#a3123a; font-weight:700; min-height:1.2em; }
+    .note { color:#6c4f7a; font-size:0.95rem; }
+    .list { margin-top: 14px; display: grid; gap: 8px; }
+  </style>
+  <script>
+    const API_BASE = '';
+    let authToken = localStorage.getItem('ax_token') || null;
+    async function api(path, options={}) {
+      const headers = options.headers || {};
+      if (authToken) headers['x-auth-token'] = authToken;
+      if (options.body && !(options.body instanceof FormData)) headers['Content-Type'] = 'application/json';
+      const res = await fetch(API_BASE + path, { ...options, headers });
+      if (!res.ok) throw new Error('API ' + res.status);
+      return res.json();
+    }
+
+    async function requireAdmin() {
+      if (!authToken) { window.location.replace('login.html'); return false; }
+      try {
+        const meRes = await fetch(API_BASE + '/api/auth/me', { headers: { 'x-auth-token': authToken } });
+        if (!meRes.ok) throw new Error();
+        const me = await meRes.json();
+        if (me.user?.role !== 'admin') throw new Error();
+        document.getElementById('meInfo').textContent = me.user.username;
+        return true;
+      } catch (e) {
+        localStorage.removeItem('ax_token');
+        window.location.replace('login.html');
+        return false;
+      }
+    }
+
+    async function handleCreate(e){
+      e.preventDefault();
+      const form = e.target;
+      const data = Object.fromEntries(new FormData(form));
+      const errorEl = document.getElementById('err');
+      errorEl.textContent = '';
+      if (!data.username || !data.password) { errorEl.textContent = 'Completați username și parola.'; return; }
+      if (!data.grade) { errorEl.textContent = 'Completați clasa elevului.'; return; }
+      // Collect enrollments from up to 3 rows (subject + group)
+      const collect = (idx) => {
+        const subject = document.getElementById('subject'+idx).value.trim();
+        const group = document.getElementById('group'+idx).value.trim();
+        if (!subject && !group) return null;
+        if (!subject) return null;
+        return { subject, grade: data.grade, group_name: group || null };
+      };
+      const enrollments = [collect(1), collect(2), collect(3)].filter(Boolean);
+      if (!enrollments.length) { errorEl.textContent = 'Adăugați cel puțin o materie.'; return; }
+      try {
+        await api('/api/admin/users', { method: 'POST', body: JSON.stringify({ username: data.username, password: data.password, grade: data.grade, enrollments }) });
+        alert('Elev creat cu succes');
+        form.reset();
+        await loadStudents();
+      } catch(e) {
+        errorEl.textContent = 'Eroare la creare elev';
+      }
+    }
+
+    async function loadStudents(){
+      const list = document.getElementById('studentsList');
+      list.innerHTML = '';
+      try {
+        const q = document.getElementById('studentSearch')?.value || '';
+        const subject = document.getElementById('studentFilterSubject')?.value || '';
+        const grade = document.getElementById('studentFilterGrade')?.value || '';
+        const qs = new URLSearchParams();
+        if (q) qs.set('q', q);
+        if (subject) qs.set('subject', subject);
+        if (grade) qs.set('grade', grade);
+        const rows = await api('/api/admin/users' + (qs.toString() ? ('?' + qs.toString()) : ''));
+        list.innerHTML = rows.map(s => {
+          const enrolls = (s.enrollments && s.enrollments.length)
+            ? s.enrollments.map(e => `${e.subject} • ${e.grade}${e.group_name ? ' • ' + e.group_name : ''}`).join(' | ')
+            : '—';
+          return `<div>#${s.id} • ${s.username} — ${enrolls} <button data-del="${s.id}" style="margin-left:6px; padding:0.3rem 0.6rem;" class="submit">Șterge</button></div>`;
+        }).join('');
+        list.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', async () => {
+          if (!confirm('Ștergi acest elev?')) return;
+          await api(`/api/admin/users/${btn.getAttribute('data-del')}`, { method: 'DELETE' });
+          await loadStudents();
+        }));
+      } catch (e) {
+        list.innerHTML = '<div class="note">Nu s-au putut încărca elevii.</div>';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const ok = await requireAdmin();
+      if (!ok) return;
+      const f = document.getElementById('createForm');
+      if (f) f.addEventListener('submit', handleCreate);
+      const btn = document.getElementById('studentSearchBtn');
+      if (btn) btn.addEventListener('click', loadStudents);
+      await loadStudents();
+    });
+  </script>
+</head>
+<body>
+  <section class="admin-student">
+    <div class="card">
+      <div class="actions">
+        <a class="link" href="platforma.html#admin">← Înapoi la panoul admin</a>
+        <div class="note">Admin conectat: <strong id="meInfo"></strong></div>
+      </div>
+      <h1 class="title">Creare elev</h1>
+      <form id="createForm" class="form">
+        <div class="row">
+          <input class="input" name="username" placeholder="Username">
+          <input class="input" name="password" placeholder="Parola">
+        </div>
+        <div class="row">
+          <input class="input" name="grade" id="gradeGlobal" placeholder="Clasa (ex: clasa-5)">
+        </div>
+        <div class="row">
+          <select class="select" id="subject1">
+            <option value="">Materie 1…</option>
+            <option value="romana">Română</option>
+            <option value="matematica">Matematică</option>
+            <option value="engleza">Engleză</option>
+          </select>
+          <input class="input" id="group1" placeholder="Grupa (opțional)">
+        </div>
+        <div class="row">
+          <select class="select" id="subject2">
+            <option value="">Materie 2…</option>
+            <option value="romana">Română</option>
+            <option value="matematica">Matematică</option>
+            <option value="engleza">Engleză</option>
+          </select>
+          <input class="input" id="group2" placeholder="Grupa (opțional)">
+        </div>
+        <div class="row">
+          <select class="select" id="subject3">
+            <option value="">Materie 3…</option>
+            <option value="romana">Română</option>
+            <option value="matematica">Matematică</option>
+            <option value="engleza">Engleză</option>
+          </select>
+          <input class="input" id="group3" placeholder="Grupa (opțional)">
+        </div>
+        <div class="actions">
+          <button class="submit" type="submit">Creează elev</button>
+          <div id="err" class="error"></div>
+        </div>
+        <div class="note">Completați o singură dată clasa elevului și selectați materiile cu grupele lor.</div>
+      </form>
+      <h2 class="title" style="font-size:1.2rem; margin-top:12px;">Elevi existenți</h2>
+      <div class="row">
+        <input class="input" id="studentSearch" placeholder="Caută după username">
+        <select class="select" id="studentFilterSubject">
+          <option value="">Materia</option>
+          <option value="romana">Română</option>
+          <option value="matematica">Matematică</option>
+          <option value="engleza">Engleză</option>
+        </select>
+        <input class="input" id="studentFilterGrade" placeholder="Clasa (ex: clasa-5)">
+        <button class="submit" id="studentSearchBtn" type="button">Caută</button>
+      </div>
+      <div id="studentsList" class="list"></div>
+    </div>
+  </section>
+</body>
+</html>
+
+
