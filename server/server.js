@@ -350,8 +350,8 @@ app.get('/api/quizzes/:quizId', requireAuth, async (req, res) => {
   const { quizId } = req.params;
   const quiz = await get(`SELECT * FROM quizzes WHERE id=?`, [quizId]);
   if (!quiz) return res.status(404).json({ error: 'not_found' });
-  const questions = await all(`SELECT id, text, options_json FROM questions WHERE quiz_id=?`, [quizId]);
-  const normalized = questions.map(q => ({ id: q.id, text: q.text, options: JSON.parse(q.options_json) }));
+  const questions = await all(`SELECT id, text, options_json, correct_index FROM questions WHERE quiz_id=?`, [quizId]);
+  const normalized = questions.map(q => ({ id: q.id, text: q.text, options: JSON.parse(q.options_json), correctIndex: q.correct_index }));
   res.json({ quiz, questions: normalized });
 });
 
