@@ -62,6 +62,12 @@
         const payload = { text: data.text, options: (data.options||'').split(',').map(s=>s.trim()).filter(Boolean), correctIndex: Number(data.correctIndex) };
         try { await api(`/api/admin/quizzes/${encodeURIComponent(data.quizId)}/questions`, { method:'POST', body: JSON.stringify(payload) }); alert('Întrebare adăugată'); fq.reset(); loadList(); } catch(e){ alert('Eroare adăugare întrebare'); }
       });
+      const fai = document.getElementById('aiQuizForm');
+      if (fai) fai.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(fai));
+        try { const out = await api('/api/admin/ai-quiz', { method:'POST', body: JSON.stringify(data) }); alert('Quiz generat cu AI, ID=' + out.id); fai.reset(); loadList(); } catch(e){ alert('Eroare generare AI'); }
+      });
       const delAllBtn = document.getElementById('deleteAllQuizzes');
       if (delAllBtn) delAllBtn.addEventListener('click', deleteAll);
       loadList();
@@ -75,6 +81,24 @@
         <a class="link" href="platforma.html#admin">← Înapoi la panoul admin</a>
       </div>
       <h1 class="title">Adaugă teste</h1>
+      <div class="card" style="margin:8px 0; padding:12px;">
+        <h2 class="title" style="font-size:1.2rem; margin-bottom:8px;">Generează cu AI</h2>
+        <form id="aiQuizForm" class="form">
+          <div class="row">
+            <select class="select" name="subject">
+              <option value="">Materia…</option>
+              <option value="romana">Română</option>
+              <option value="matematica">Matematică</option>
+              <option value="engleza">Engleză</option>
+            </select>
+            <input class="input" name="grade" placeholder="Clasa (ex: clasa-5)">
+            <input class="input" name="group_name" placeholder="Grupa (opțional)">
+          </div>
+          <input class="input" name="topic" placeholder="Topic/competențe (ex: fracții, părți de vorbire)">
+          <input class="input" name="count" placeholder="Număr întrebări (default 5)">
+          <div class="actions"><button class="submit" type="submit">Generează cu AI</button></div>
+        </form>
+      </div>
       <form id="quizForm" class="form">
         <div class="row">
           <select class="select" name="subject">
