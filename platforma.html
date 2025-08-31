@@ -566,12 +566,25 @@
         });
         try {
           const res = await api(`/api/quizzes/${quiz.id}/submit`, { method: 'POST', body: JSON.stringify({ answers }) });
-          const lines = res.details.map(d => {
-            const sign = d.isCorrect ? '✔️' : '❌';
-            return `${sign} Întrebarea ${d.questionId}: răspunsul tău = ${d.yourAnswer}, corect = ${d.correctIndex}`;
-          }).join('\n');
-          alert(`Scor: ${res.score}/${res.total} — ${res.percent}% (nota ${Math.max(1, Math.round(res.percent/10))})\n\nDetalii:\n${lines}`);
-          loadQuizzes();
+          const detailMap = new Map(res.details.map(d => [d.questionId, d]));
+          const per = res.percent;
+          const nota10 = Math.max(1, Math.round(per/10));
+          const blocks = questions.map(q => {
+            const d = detailMap.get(q.id) || { yourAnswer: -1, correctIndex: -1, isCorrect: false };
+            const yourText = d.yourAnswer >= 0 ? q.options[d.yourAnswer] : '(necompletat)';
+            const correctText = d.correctIndex >= 0 ? q.options[d.correctIndex] : '(—)';
+            const badge = d.isCorrect ? '✓' : '✗';
+            const yourColor = d.isCorrect ? '#146c43' : '#a3123a';
+            return `<div class="platform__card" style="margin-top:8px;">
+              <div style="font-weight:700; margin-bottom:6px;">${q.text}</div>
+              <div class="platform__meta" style="color:${yourColor}; font-weight:700;">${badge} Răspunsul tău: ${yourText}</div>
+              ${d.isCorrect ? '' : `<div class=\"platform__meta\" style=\"color:#146c43;\">Corect: ${correctText}</div>`}
+            </div>`;
+          }).join('');
+          const backBtn = `<div class="actions" style="margin-top:10px;"><button id="backToQuizzes" class="platform__btn" type="button">Înapoi la teste</button></div>`;
+          view.innerHTML = `<div class="platform__card"><h4>Rezultat: ${res.score}/${res.total} — ${per}% (nota ${nota10})</h4></div>` + blocks + backBtn;
+          const back = document.getElementById('backToQuizzes');
+          if (back) back.addEventListener('click', loadQuizzes);
         } catch(e) { alert('Trimitere eșuată'); }
       });
     }
