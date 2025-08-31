@@ -35,11 +35,41 @@
     async function loadList(){
       const rows = await api('/api/admin/quizzes');
       const list = document.getElementById('quizList');
-      list.innerHTML = rows.map(q => `<div>${q.subject || '-'} • ${q.grade}${q.group_name ? ' • ' + q.group_name : ''}: ${q.title} (ID: ${q.id}) <button data-del-quiz="${q.id}" class="submit" style="padding:0.3rem 0.6rem; margin-left:6px;">Șterge</button></div>`).join('');
+      list.innerHTML = rows.map(q => `<div>${q.subject || '-'} • ${q.grade}${q.group_name ? ' • ' + q.group_name : ''}: ${q.title} (ID: ${q.id}) <button data-edit-quiz="${q.id}" class="submit" style="padding:0.3rem 0.6rem; margin-left:6px;">Editează</button> <button data-del-quiz="${q.id}" class="submit" style="padding:0.3rem 0.6rem; margin-left:6px;">Șterge</button></div>`).join('');
+      list.querySelectorAll('[data-edit-quiz]').forEach(btn => btn.addEventListener('click', () => openEditor(btn.getAttribute('data-edit-quiz'))));
       list.querySelectorAll('[data-del-quiz]').forEach(btn => btn.addEventListener('click', async () => {
         if (!confirm('Ștergi acest quiz?')) return;
         await api(`/api/admin/quizzes/${btn.getAttribute('data-del-quiz')}`, { method:'DELETE' });
         await loadList();
+      }));
+    }
+    async function openEditor(id){
+      const ed = document.getElementById('quizEditor');
+      ed.style.display = 'block';
+      ed.innerHTML = '<div class="platform__meta">Se încarcă…</div>';
+      const data = await api(`/api/quizzes/${id}`);
+      const qhtml = data.questions.map(q => {
+        const opts = q.options.map((o,i)=>`<div class=\"row\"><input class=\"input\" name=\"opt${q.id}-${i}\" value=\"${o.replace(/"/g,'&quot;')}\"><label><input type=\"radio\" name=\"correct${q.id}\" value=\"${i}\"> corect</label></div>`).join('');
+        return `<div style=\"border:1px solid #ece6f7; padding:10px; border-radius:10px; margin:8px 0;\">
+          <input class=\"input\" name=\"text${q.id}\" value=\"${q.text.replace(/"/g,'&quot;')}\">
+          ${opts}
+          <div class=\"actions\"><button data-save-q=\"${q.id}\" class=\"submit\" type=\"button\">Salvează</button> <button data-del-q=\"${q.id}\" class=\"submit\" type=\"button\">Șterge întrebarea</button></div>
+        </div>`;
+      }).join('');
+      ed.innerHTML = `<h3 class=\"title\" style=\"font-size:1.1rem;\">Editezi: ${data.quiz.title} (ID: ${data.quiz.id})</h3>` + qhtml;
+      ed.querySelectorAll('[data-save-q]').forEach(btn => btn.addEventListener('click', async ()=>{
+        const qid = btn.getAttribute('data-save-q');
+        const text = ed.querySelector(`[name=text${qid}]`).value;
+        const opts = Array.from(ed.querySelectorAll(`[name^=opt${qid}-]`)).map(i=>i.value);
+        const ci = Number(ed.querySelector(`[name=correct${qid}]:checked`)?.value ?? 0);
+        try { await api(`/api/admin/questions/${qid}`, { method:'PUT', body: JSON.stringify({ text, options: opts, correctIndex: ci }) }); alert('Salvat'); }
+        catch(e){ alert('Eroare salvare'); }
+      }));
+      ed.querySelectorAll('[data-del-q]').forEach(btn => btn.addEventListener('click', async ()=>{
+        const qid = btn.getAttribute('data-del-q');
+        if (!confirm('Ștergi această întrebare?')) return;
+        try { await api(`/api/admin/questions/${qid}`, { method:'DELETE' }); openEditor(id); }
+        catch(e){ alert('Eroare ștergere'); }
       }));
     }
     async function deleteAll(){
@@ -144,6 +174,7 @@
         <button id="deleteAllQuizzes" class="submit" type="button">Șterge toate quizurile</button>
       </div>
       <div id="quizList" class="list"></div>
+      <div id="quizEditor" class="card" style="margin-top:12px; display:none; padding:12px;"></div>
     </div>
   </section>
 </body>

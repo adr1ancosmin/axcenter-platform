@@ -12,8 +12,10 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// uploads
-const UPLOAD_DIR = path.join(__dirname, 'uploads');
+// uploads (persist across restarts if UPLOAD_DIR or DATA_DIR points to a Render Disk)
+const UPLOAD_DIR = process.env.UPLOAD_DIR
+  ? path.resolve(process.env.UPLOAD_DIR)
+  : path.join(process.env.DATA_DIR || __dirname, 'uploads');
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 const storage = multer.diskStorage({
   destination: (_, __, cb) => cb(null, UPLOAD_DIR),
@@ -351,6 +353,28 @@ app.get('/api/quizzes/:quizId', requireAuth, async (req, res) => {
   const questions = await all(`SELECT id, text, options_json FROM questions WHERE quiz_id=?`, [quizId]);
   const normalized = questions.map(q => ({ id: q.id, text: q.text, options: JSON.parse(q.options_json) }));
   res.json({ quiz, questions: normalized });
+});
+
+// admin: update question
+app.put('/api/admin/questions/:id', requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { text, options, correctIndex } = req.body || {};
+  const row = await get(`SELECT id FROM questions WHERE id=?`, [id]);
+  if (!row) return res.status(404).json({ error: 'not_found' });
+  if (!text || !Array.isArray(options) || options.length < 2 || correctIndex == null) {
+    return res.status(400).json({ error: 'invalid_fields' });
+  }
+  await run(`UPDATE questions SET text=?, options_json=?, correct_index=? WHERE id=?`, [String(text), JSON.stringify(options), Number(correctIndex), id]);
+  res.json({ ok: true });
+});
+
+// admin: delete question
+app.delete('/api/admin/questions/:id', requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const row = await get(`SELECT id FROM questions WHERE id=?`, [id]);
+  if (!row) return res.status(404).json({ error: 'not_found' });
+  await run(`DELETE FROM questions WHERE id=?`, [id]);
+  res.json({ ok: true });
 });
 
 // submit quiz and score
