@@ -238,6 +238,7 @@
       <li><button data-target="sect-teme" role="tab" aria-controls="sect-teme">Teme</button></li>
       <li><button data-target="sect-teste" role="tab" aria-controls="sect-teste">Teste</button></li>
       <li><button data-target="sect-parinti" role="tab" aria-controls="sect-parinti">Pentru părinți</button></li>
+      <li><button data-target="sect-chat" role="tab" aria-controls="sect-chat">Ajutorul tău personal</button></li>
     </ul>
   </aside>
 
@@ -349,6 +350,18 @@
         <div class="platform__section-card">
           <h3>Rapoartele mele</h3>
           <div id="parentReports" class="platform__links"></div>
+        </div>
+      </section>
+
+      <!-- Ajutorul tău personal (Chat) -->
+      <section id="sect-chat" class="platform__section" role="tabpanel">
+        <div class="platform__section-card">
+          <h3>Ajutorul tău personal</h3>
+          <div id="chatWindow" style="display:flex; flex-direction:column; gap:10px; max-height:60vh; overflow:auto; border:1px solid #ece6f7; border-radius:12px; padding:10px; background:#fff;"></div>
+          <form id="chatForm" class="platform__form" style="margin-top:10px;">
+            <input id="chatInput" class="platform__input" type="text" placeholder="Scrie întrebarea ta... / Ask your question..." autocomplete="off" />
+            <button class="platform__submit" type="submit">Trimite</button>
+          </form>
         </div>
       </section>
 
@@ -659,11 +672,56 @@
         }
         await loadStudentData();
         renderAdminLists();
+        initChatUI();
       } catch(e) {
         clearAuth();
         window.location.replace('login.html');
       }
     })();
+
+    // ===== Chat UI =====
+    function appendChatMessage(role, text) {
+      const win = document.getElementById('chatWindow');
+      if (!win) return;
+      const bubble = document.createElement('div');
+      bubble.style.padding = '10px';
+      bubble.style.borderRadius = '12px';
+      bubble.style.maxWidth = '85%';
+      bubble.style.whiteSpace = 'pre-wrap';
+      bubble.style.wordBreak = 'break-word';
+      if (role === 'user') {
+        bubble.style.background = '#f3e9ff';
+        bubble.style.alignSelf = 'flex-end';
+      } else {
+        bubble.style.background = '#eefaf3';
+        bubble.style.alignSelf = 'flex-start';
+      }
+      bubble.textContent = text;
+      win.appendChild(bubble);
+      win.scrollTop = win.scrollHeight;
+    }
+
+    function initChatUI() {
+      const form = document.getElementById('chatForm');
+      const input = document.getElementById('chatInput');
+      const win = document.getElementById('chatWindow');
+      if (!form || !input || !win) return;
+      win.innerHTML = '';
+      appendChatMessage('assistant', 'Salut! Sunt asistentul tău. Cum te pot ajuta? / Hi! I\'m your assistant. How can I help?');
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const text = (input.value || '').trim();
+        if (!text) return;
+        appendChatMessage('user', text);
+        input.value = '';
+        try {
+          const res = await api('/api/chat', { method: 'POST', body: JSON.stringify({ message: text }) });
+          appendChatMessage('assistant', res.reply || '(fără răspuns)');
+        } catch (err) {
+          appendChatMessage('assistant', 'Eroare sau limită atinsă. Încearcă din nou în scurt timp.');
+        }
+      });
+    }
   </script>
 </body>
 </html>

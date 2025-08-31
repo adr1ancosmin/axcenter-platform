@@ -33,6 +33,20 @@ app.get('/platforma.html', (_req, res) => res.sendFile(path.join(WWW_ROOT, 'plat
 // ultra-simple token store (in-memory)
 const tokens = new Map(); // token -> { id, username, role, grade }
 
+// simple per-user rate limiter: max 10 requests per 60s
+const rateBuckets = new Map(); // userId -> number[] of timestamps (ms)
+function allowRequestForUser(userId) {
+	const now = Date.now();
+	const windowMs = 60 * 1000;
+	const maxReq = 10;
+	const arr = rateBuckets.get(userId) || [];
+	const recent = arr.filter(t => now - t < windowMs);
+	if (recent.length >= maxReq) return false;
+	recent.push(now);
+	rateBuckets.set(userId, recent);
+	return true;
+}
+
 // auth helpers
 function requireAuth(req, res, next) {
   const token = req.headers['x-auth-token'];
@@ -488,6 +502,44 @@ app.get('/api/my/reports', requireAuth, async (req, res) => {
     [req.user.id]
   );
   res.json(rows);
+});
+
+// ===== CHAT ASSISTANT =====
+app.post('/api/chat', requireAuth, async (req, res) => {
+	try {
+		if (!allowRequestForUser(req.user.id)) return res.status(429).json({ error: 'rate_limited', message: 'Too many requests. Try again in a minute.' });
+		const { message } = req.body || {};
+		if (!message || typeof message !== 'string') return res.status(400).json({ error: 'missing_message' });
+		const API_KEY = process.env.ANTHROPIC_API_KEY;
+		if (!API_KEY) return res.status(500).json({ error: 'missing_anthropic_api_key' });
+
+		const system = 'You are a friendly educational assistant for school students. Reply in the user\'s language (Romanian or English). Keep explanations simple and level-appropriate. Do NOT create or propose quizzes/tests. Provide clear, structured help and short examples when useful.';
+
+		const resp = await fetch('https://api.anthropic.com/v1/messages', {
+			method: 'POST',
+			headers: {
+				'content-type': 'application/json',
+				'x-api-key': API_KEY,
+				'anthropic-version': '2023-06-01'
+			},
+			body: JSON.stringify({
+				model: process.env.ANTHROPIC_MODEL || 'claude-3-haiku-20240307',
+				max_tokens: 800,
+				system,
+				messages: [{ role: 'user', content: [{ type: 'text', text: String(message).slice(0, 4000) }] }]
+			})
+		});
+		if (!resp.ok) {
+			let detail = '';
+			try { detail = await resp.text(); } catch(_) {}
+			return res.status(500).json({ error: 'anthropic_http_' + resp.status, detail });
+		}
+		const out = await resp.json();
+		const reply = (out && out.content && out.content[0] && out.content[0].text) ? out.content[0].text : '';
+		res.json({ ok: true, reply });
+	} catch (e) {
+		res.status(500).json({ error: 'chat_failed', detail: String(e.message || e) });
+	}
 });
 
 // ===== DAILY LESSONS =====
