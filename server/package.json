@@ -13,7 +13,7 @@
       "multer": "^1.4.5-lts.1",
       "nanoid": "^5.0.7",
       "sqlite3": "^5.1.7",
-      "anthropic": "^0.24.0"
+      "anthropic": "^0.18.1"
     },
     "devDependencies": {
       "nodemon": "^3.1.0"
