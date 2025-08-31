@@ -1,0 +1,2 @@
+/api/* https://axcenter-platform.onrender.com/api/:splat 200
+/uploads/* https://axcenter-platform.onrender.com/uploads/:splat 200

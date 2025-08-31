@@ -1,4 +1,0 @@
-@"
-/api/*     https://axcenter-api.onrender.com/api/:splat    200
-/uploads/* https://axcenter-api.onrender.com/uploads/:splat 200
-"@ | Out-File -Encoding utf8 _redirects
