@@ -542,8 +542,7 @@ app.post('/api/admin/ai-quiz', requireAuth, requireAdmin, async (req, res) => {
         model: 'claude-3-5-sonnet-20240620',
         max_tokens: 2000,
         system,
-        messages: [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
-        response_format: { type: 'json_object' }
+        messages: [{ role: 'user', content: [{ type: 'text', text: prompt }] }]
       })
     });
     if (!resp.ok) {
@@ -552,7 +551,8 @@ app.post('/api/admin/ai-quiz', requireAuth, requireAdmin, async (req, res) => {
       return res.status(500).json({ error: 'anthropic_http_' + resp.status, detail });
     }
     const out = await resp.json();
-    const text = out?.content?.[0]?.text || '{}';
+    let text = out?.content?.[0]?.text || '{}';
+    text = text.trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/,'');
     let data; try { data = JSON.parse(text); } catch(e) { return res.status(500).json({ error: 'invalid_ai_json' }); }
     if (!data || !Array.isArray(data.questions) || !data.questions.length) return res.status(500).json({ error: 'ai_empty' });
 
