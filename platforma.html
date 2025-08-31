@@ -716,10 +716,68 @@
         input.value = '';
         try {
           const res = await api('/api/chat', { method: 'POST', body: JSON.stringify({ message: text }) });
-          appendChatMessage('assistant', res.reply || '(fără răspuns)');
+          if (res.quiz && Array.isArray(res.quiz.questions)) {
+            renderChatQuiz(res.quiz);
+          } else {
+            appendChatMessage('assistant', res.reply || '(fără răspuns)');
+          }
         } catch (err) {
           appendChatMessage('assistant', 'Eroare sau limită atinsă. Încearcă din nou în scurt timp.');
         }
+      });
+    }
+
+    function renderChatQuiz(quiz) {
+      const win = document.getElementById('chatWindow');
+      if (!win) return;
+      const card = document.createElement('div');
+      card.className = 'platform__card';
+      card.style.alignSelf = 'flex-start';
+      const qid = 'chatQuiz_' + Math.random().toString(36).slice(2);
+      card.innerHTML = `
+        <h4>${quiz.title || 'Quiz'}</h4>
+        <div class="platform__mcq">${quiz.questions.map((q, idx) => {
+          const name = qid + '_' + idx;
+          const opts = (q.options || []).map((opt, i) => `<label><input type="radio" name="${name}" value="${i}"> ${opt}</label>`).join('');
+          return `<div><p><strong>${idx+1}.</strong> ${q.text}</p>${opts}</div>`;
+        }).join('')}</div>
+        <button class="platform__btn" data-quiz-submit="${qid}" style="margin-top:10px;">Trimite</button>
+      `;
+      win.appendChild(card);
+      win.scrollTop = win.scrollHeight;
+
+      const btn = card.querySelector(`[data-quiz-submit="${qid}"]`);
+      btn.addEventListener('click', () => {
+        let score = 0;
+        const details = [];
+        quiz.questions.forEach((q, idx) => {
+          const name = qid + '_' + idx;
+          const checked = card.querySelector(`input[name="${name}"]:checked`);
+          const your = checked ? Number(checked.value) : -1;
+          const ok = your === Number(q.correctIndex);
+          if (ok) score++;
+          details.push({ idx, your, correct: Number(q.correctIndex) });
+        });
+        const total = quiz.questions.length || 0;
+        const percent = total ? Math.round((score / total) * 100) : 0;
+        const nota10 = Math.max(1, Math.round(percent/10));
+        const resultCard = document.createElement('div');
+        resultCard.className = 'platform__card';
+        resultCard.style.marginTop = '8px';
+        resultCard.innerHTML = `<h4>Rezultat: ${score}/${total} — ${percent}% (nota ${nota10})</h4>` + details.map((d) => {
+          const q = quiz.questions[d.idx];
+          const yourText = d.your >= 0 ? q.options[d.your] : '(necompletat)';
+          const correctText = d.correct >= 0 ? q.options[d.correct] : '(—)';
+          const badge = d.your === d.correct ? '✓' : '✗';
+          const yourColor = d.your === d.correct ? '#146c43' : '#a3123a';
+          return `<div class="platform__card" style="margin-top:8px;">
+            <div style="font-weight:700; margin-bottom:6px;">${q.text}</div>
+            <div class="platform__meta" style="color:${yourColor}; font-weight:700;">${badge} Răspunsul tău: ${yourText}</div>
+            ${d.your === d.correct ? '' : `<div class=\"platform__meta\" style=\"color:#146c43;\">Corect: ${correctText}</div>`}
+          </div>`;
+        }).join('');
+        win.appendChild(resultCard);
+        win.scrollTop = win.scrollHeight;
       });
     }
   </script>

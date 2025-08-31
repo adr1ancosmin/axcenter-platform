@@ -513,8 +513,55 @@ app.post('/api/chat', requireAuth, async (req, res) => {
 		const API_KEY = process.env.ANTHROPIC_API_KEY;
 		if (!API_KEY) return res.status(500).json({ error: 'missing_anthropic_api_key' });
 
-		const system = 'You are a friendly educational assistant for school students. Reply in the user\'s language (Romanian or English). Keep explanations simple and level-appropriate. Do NOT create or propose quizzes/tests. Provide clear, structured help and short examples when useful.';
+		const lower = String(message).toLowerCase();
+		const isQuizReq = /(quiz|test|întrebări|intrebari)/.test(lower);
 
+		if (isQuizReq) {
+			// Try to extract a topic after keywords like "despre", "din", or the rest of the sentence
+			let topic = '';
+			const m = lower.match(/(?:despre|din)\s+([^.,;!?]{3,80})/);
+			if (m) topic = m[1].trim();
+			if (!topic) topic = message.trim();
+			const system = 'You generate short multiple-choice quizzes ONLY when explicitly asked. Return ONLY valid JSON. Do not include any extra text.';
+			const prompt = `Creează un test MCQ scurt despre: ${topic}\n\nCerințe:\n- DOAR JSON valid conform schemei:\n{\n  "title": "string",\n  "questions": [\n    {\n      "text": "string",\n      "options": ["string", "string", "string", "string"],\n      "correctIndex": 0\n    }\n  ]\n}\n- 5 întrebări, nivel prietenos pentru elevi. Un singur răspuns corect per întrebare.`;
+
+			const resp = await fetch('https://api.anthropic.com/v1/messages', {
+				method: 'POST',
+				headers: {
+					'content-type': 'application/json',
+					'x-api-key': API_KEY,
+					'anthropic-version': '2023-06-01'
+				},
+				body: JSON.stringify({
+					model: process.env.ANTHROPIC_MODEL || 'claude-3-haiku-20240307',
+					max_tokens: 1800,
+					system,
+					messages: [{ role: 'user', content: [{ type: 'text', text: prompt }] }]
+				})
+			});
+			if (!resp.ok) {
+				let detail = '';
+				try { detail = await resp.text(); } catch(_) {}
+				return res.status(500).json({ error: 'anthropic_http_' + resp.status, detail });
+			}
+			const out = await resp.json();
+			let text = out?.content?.[0]?.text || '{}';
+			text = text.trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/,'');
+			let data; try { data = JSON.parse(text); } catch(e) { return res.status(500).json({ error: 'invalid_ai_json' }); }
+			if (!data || !Array.isArray(data.questions) || !data.questions.length) return res.status(500).json({ error: 'ai_empty' });
+			// limit options and sanitize
+			for (const q of data.questions) {
+				if (!Array.isArray(q.options)) q.options = [];
+				q.options = q.options.slice(0, 6);
+				q.text = String(q.text || '').slice(0, 1000);
+				q.correctIndex = Number(q.correctIndex || 0);
+			}
+			const title = String(data.title || `Quiz — ${topic}`).slice(0, 200);
+			return res.json({ ok: true, quiz: { title, questions: data.questions } });
+		}
+
+		// normal assistant reply
+		const system = 'You are a friendly educational assistant for school students. Reply in the user\'s language (Romanian or English). Keep explanations simple and level-appropriate. If the user explicitly asks for a quiz/test, you may create one; otherwise, do not propose quizzes. Provide clear, structured help and short examples when useful.';
 		const resp = await fetch('https://api.anthropic.com/v1/messages', {
 			method: 'POST',
 			headers: {
