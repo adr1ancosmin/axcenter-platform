@@ -256,6 +256,9 @@
       <!-- Materiale -->
       <section id="sect-materiale" class="platform__section active" role="tabpanel">
         <div class="platform__section-card">
+          <div class="platform__form" style="margin-bottom:10px;">
+            <input id="pdfSearch" class="platform__input" type="text" placeholder="Caută materiale după titlu..." />
+          </div>
           <div class="platform__tabs" role="tablist">
             <button class="platform__tab is-active" data-tab="romana" role="tab" aria-controls="tab-romana">Română</button>
             <button class="platform__tab" data-tab="matematica" role="tab" aria-controls="tab-matematica">Matematică</button>
@@ -279,6 +282,9 @@
       <section id="sect-lectie" class="platform__section" role="tabpanel">
         <div class="platform__section-card">
           <h3>Lecția de azi – grupa ta</h3>
+          <div class="platform__form" style="margin:10px 0;">
+            <input id="lessonSearchStudent" class="platform__input" type="text" placeholder="Caută lecții după titlu..." />
+          </div>
           <div id="dailyLessons" class="platform__links" style="margin-top:10px;"></div>
         </div>
       </section>
@@ -287,6 +293,9 @@
       <section id="sect-teme" class="platform__section" role="tabpanel">
         <div class="platform__section-card">
           <h3>Teme curente</h3>
+          <div class="platform__form" style="margin:10px 0;">
+            <input id="homeworkSearchStudent" class="platform__input" type="text" placeholder="Caută teme după titlu..." />
+          </div>
           <div id="homeworkGrid" class="platform__grid" style="margin-top:10px;"></div>
         </div>
       </section>
@@ -470,8 +479,10 @@
       if (contEng) contEng.innerHTML = '';
       try {
         const rows = await api(`/api/pdfs`);
-        for (const r of rows) {
-          const link = `<a href="${API_BASE}${r.file_path}" target="_blank" rel="noopener">${r.title}</a>`;
+        window.__pdfRows = rows || [];
+        const icon = '<img src="images/pdf.png" alt="PDF" style="height:16px; width:16px; vertical-align:middle; margin-right:6px;">';
+        for (const r of window.__pdfRows) {
+          const link = `<a href="${API_BASE}${r.file_path}" target="_blank" rel="noopener">${icon}${r.title}</a>`;
           if (r.subject === 'romana' && contRom) contRom.innerHTML += link;
           else if (r.subject === 'matematica' && contMat) contMat.innerHTML += link;
           else if (r.subject === 'engleza' && contEng) contEng.innerHTML += link;
@@ -487,13 +498,15 @@
       try {
         const endpoint = authUser?.role === 'admin' ? '/api/admin/homeworks' : '/api/homeworks';
         const rows = await api(endpoint);
-        const items = await Promise.all(rows.map(async (r) => {
+        window.__hwRows = rows || [];
+        const items = await Promise.all(window.__hwRows.map(async (r) => {
           let submitHtml = '';
           try {
             if (authUser?.role !== 'admin') {
               const sub = await api(`/api/homeworks/${r.id}/submission`);
               if (sub) {
-                submitHtml = `<div class=\"platform__meta\" style=\"margin-top:6px;\">Trimis: <a href=\"${API_BASE}${sub.file_path}\" target=\"_blank\">fișier</a> (${sub.created_at})</div>`;
+                const icon = '<img src="images/pdf.png" alt="PDF" style="height:14px; width:14px; vertical-align:middle; margin-right:6px;">';
+                submitHtml = `<div class=\"platform__meta\" style=\"margin-top:6px;\">Trimis: <a href=\"${API_BASE}${sub.file_path}\" target=\"_blank\">${icon}fișier</a> (${sub.created_at})</div>`;
               } else {
                 submitHtml = `<form data-submit-hw=\"${r.id}\" class=\"platform__form\" style=\"margin-top:8px;\"><input class=\"platform__input\" type=\"file\" name=\"file\" accept=\"application/pdf\"><button class=\"platform__submit\" type=\"submit\">Încarcă soluția</button></form>`;
               }
@@ -507,7 +520,7 @@
           <div class=\"platform__card\">
             <h4>${r.title}</h4>
             <div class=\"platform__meta\">Termen: ${r.due_date || '-'} • Clasa: ${r.grade}${r.group_name ? ' • ' + r.group_name : ''}</div>
-            ${r.pdf_path ? `<div style=\"margin-top:6px;\"><a href=\"${API_BASE}${r.pdf_path}\" target=\"_blank\">Deschide PDF</a></div>` : ''}
+            ${r.pdf_path ? `<div style=\"margin-top:6px;\">${(() => { const icon = '<img src=\\"images/pdf.png\\" alt=\\"PDF\\" style=\\"height:14px; width:14px; vertical-align:middle; margin-right:6px;\\">'; return `<a href=\\"${API_BASE}${r.pdf_path}\\" target=\\"_blank\\">${icon}Deschide PDF</a>`; })()}</div>` : ''}
             ${submitHtml}
             ${adminBlock}
           </div>`;
@@ -537,7 +550,8 @@
                 const subs = await api(`/api/admin/homeworks/${id}/submissions`);
                 if (!subs.length) { container.style.display='block'; container.innerHTML = '<div class="platform__meta">Nicio trimitere.</div>'; return; }
                 container.style.display='block';
-                container.innerHTML = subs.map(s => `<a href="${API_BASE}${s.file_path}" target="_blank">#${s.user_id} ${s.username} (${s.grade}) — ${s.created_at}</a>`).join('');
+                const icon = '<img src="images/pdf.png" alt="PDF" style="height:14px; width:14px; vertical-align:middle; margin-right:6px;">';
+                container.innerHTML = subs.map(s => `<a href="${API_BASE}${s.file_path}" target="_blank">${icon}#${s.user_id} ${s.username} (${s.grade}) — ${s.created_at}</a>`).join('');
               } catch(e){ container.style.display='block'; container.innerHTML = '<div class="platform__meta">Eroare încărcare trimiteri.</div>'; }
             });
           });
@@ -624,7 +638,9 @@
       if (!list) return;
       try {
         const rows = await api('/api/daily-lessons');
-        list.innerHTML = rows.map(r => `<a href="${API_BASE}${r.file_path}" target="_blank" rel="noopener">${r.title}${r.date ? ' • ' + r.date : ''}</a>`).join('');
+        window.__lessonRows = rows || [];
+        const icon = '<img src="images/pdf.png" alt="PDF" style="height:16px; width:16px; vertical-align:middle; margin-right:6px;">';
+        list.innerHTML = window.__lessonRows.map(r => `<a href="${API_BASE}${r.file_path}" target="_blank" rel="noopener">${icon}${r.title}${r.date ? ' • ' + r.date : ''}</a>`).join('');
       } catch(e) { list.innerHTML = ''; }
     }
 
@@ -673,6 +689,7 @@
         await loadStudentData();
         renderAdminLists();
         initChatUI();
+        initStudentSearches();
       } catch(e) {
         clearAuth();
         window.location.replace('login.html');
@@ -779,6 +796,67 @@
         win.appendChild(resultCard);
         win.scrollTop = win.scrollHeight;
       });
+    }
+
+    function initStudentSearches() {
+      // Materials search
+      const pdfInput = document.getElementById('pdfSearch');
+      if (pdfInput) {
+        pdfInput.addEventListener('input', () => {
+          const q = (pdfInput.value || '').toLowerCase();
+          const contRom = document.querySelector('#tab-romana .platform__links');
+          const contMat = document.querySelector('#tab-matematica .platform__links');
+          const contEng = document.querySelector('#tab-engleza .platform__links');
+          if (contRom) contRom.innerHTML = '';
+          if (contMat) contMat.innerHTML = '';
+          if (contEng) contEng.innerHTML = '';
+          const rows = window.__pdfRows || [];
+          const icon = '<img src="images/pdf.png" alt="PDF" style="height:16px; width:16px; vertical-align:middle; margin-right:6px;">';
+          rows.filter(r => !q || (r.title || '').toLowerCase().includes(q)).forEach(r => {
+            const link = `<a href="${API_BASE}${r.file_path}" target="_blank" rel="noopener">${icon}${r.title}</a>`;
+            if (r.subject === 'romana' && contRom) contRom.innerHTML += link;
+            else if (r.subject === 'matematica' && contMat) contMat.innerHTML += link;
+            else if (r.subject === 'engleza' && contEng) contEng.innerHTML += link;
+            else if (contRom) contRom.innerHTML += link;
+          });
+        });
+      }
+
+      // Daily lessons search
+      const lessonInput = document.getElementById('lessonSearchStudent');
+      if (lessonInput) {
+        lessonInput.addEventListener('input', () => {
+          const q = (lessonInput.value || '').toLowerCase();
+          const list = document.getElementById('dailyLessons');
+          if (!list) return;
+          const rows = window.__lessonRows || [];
+          const icon = '<img src="images/pdf.png" alt="PDF" style="height:16px; width:16px; vertical-align:middle; margin-right:6px;">';
+          list.innerHTML = rows
+            .filter(r => !q || (r.title || '').toLowerCase().includes(q))
+            .map(r => `<a href="${API_BASE}${r.file_path}" target="_blank" rel="noopener">${icon}${r.title}${r.date ? ' • ' + r.date : ''}</a>`)
+            .join('');
+        });
+      }
+
+      // Homeworks search
+      const hwInput = document.getElementById('homeworkSearchStudent');
+      if (hwInput) {
+        hwInput.addEventListener('input', () => {
+          const q = (hwInput.value || '').toLowerCase();
+          const grid = document.getElementById('homeworkGrid');
+          if (!grid) return;
+          const rows = window.__hwRows || [];
+          const icon = '<img src="images/pdf.png" alt="PDF" style="height:14px; width:14px; vertical-align:middle; margin-right:6px;">';
+          const filtered = rows.filter(r => !q || (r.title || '').toLowerCase().includes(q));
+          grid.innerHTML = filtered.map(r => `
+            <div class=\"platform__card\">
+              <h4>${r.title}</h4>
+              <div class=\"platform__meta\">Termen: ${r.due_date || '-'} • Clasa: ${r.grade}${r.group_name ? ' • ' + r.group_name : ''}</div>
+              ${r.pdf_path ? `<div style=\"margin-top:6px;\"><a href=\"${API_BASE}${r.pdf_path}\" target=\"_blank\">${icon}Deschide PDF</a></div>` : ''}
+            </div>
+          `).join('');
+        });
+      }
     }
   </script>
 </body>
