@@ -505,8 +505,7 @@
             if (authUser?.role !== 'admin') {
               const sub = await api(`/api/homeworks/${r.id}/submission`);
               if (sub) {
-                const icon = '<img src="images/pdf.png" alt="PDF" style="height:14px; width:14px; vertical-align:middle; margin-right:6px;">';
-                submitHtml = `<div class=\"platform__meta\" style=\"margin-top:6px;\">Trimis: <a href=\"${API_BASE}${sub.file_path}\" target=\"_blank\">${icon}fișier</a> (${sub.created_at})</div>`;
+                submitHtml = `<div class=\"platform__meta\" style=\"margin-top:6px;\">Trimis: <a href=\"${API_BASE}${sub.file_path}\" target=\"_blank\">fișier</a> (${sub.created_at})</div>`;
               } else {
                 submitHtml = `<form data-submit-hw=\"${r.id}\" class=\"platform__form\" style=\"margin-top:8px;\"><input class=\"platform__input\" type=\"file\" name=\"file\" accept=\"application/pdf\"><button class=\"platform__submit\" type=\"submit\">Încarcă soluția</button></form>`;
               }
@@ -520,7 +519,7 @@
           <div class=\"platform__card\">
             <h4>${r.title}</h4>
             <div class=\"platform__meta\">Termen: ${r.due_date || '-'} • Clasa: ${r.grade}${r.group_name ? ' • ' + r.group_name : ''}</div>
-            ${r.pdf_path ? `<div style=\"margin-top:6px;\">${(() => { const icon = '<img src=\\"images/pdf.png\\" alt=\\"PDF\\" style=\\"height:14px; width:14px; vertical-align:middle; margin-right:6px;\\">'; return `<a href=\\"${API_BASE}${r.pdf_path}\\" target=\\"_blank\\">${icon}Deschide PDF</a>`; })()}</div>` : ''}
+            ${r.pdf_path ? `<div style=\"margin-top:6px;\"><a href=\"${API_BASE}${r.pdf_path}\" target=\"_blank\">Deschide PDF</a></div>` : ''}
             ${submitHtml}
             ${adminBlock}
           </div>`;
@@ -550,8 +549,7 @@
                 const subs = await api(`/api/admin/homeworks/${id}/submissions`);
                 if (!subs.length) { container.style.display='block'; container.innerHTML = '<div class="platform__meta">Nicio trimitere.</div>'; return; }
                 container.style.display='block';
-                const icon = '<img src="images/pdf.png" alt="PDF" style="height:14px; width:14px; vertical-align:middle; margin-right:6px;">';
-                container.innerHTML = subs.map(s => `<a href="${API_BASE}${s.file_path}" target="_blank">${icon}#${s.user_id} ${s.username} (${s.grade}) — ${s.created_at}</a>`).join('');
+                container.innerHTML = subs.map(s => `<a href="${API_BASE}${s.file_path}" target="_blank">#${s.user_id} ${s.username} (${s.grade}) — ${s.created_at}</a>`).join('');
               } catch(e){ container.style.display='block'; container.innerHTML = '<div class="platform__meta">Eroare încărcare trimiteri.</div>'; }
             });
           });
@@ -846,14 +844,12 @@
           const grid = document.getElementById('homeworkGrid');
           if (!grid) return;
           const rows = window.__hwRows || [];
-          const icon = '<img src="images/pdf.png" alt="PDF" style="height:14px; width:14px; vertical-align:middle; margin-right:6px;">';
           const filtered = rows.filter(r => !q || (r.title || '').toLowerCase().includes(q));
           grid.innerHTML = filtered.map(r => `
             <div class=\"platform__card\">
               <h4>${r.title}</h4>
               <div class=\"platform__meta\">Termen: ${r.due_date || '-'} • Clasa: ${r.grade}${r.group_name ? ' • ' + r.group_name : ''}</div>
-              ${r.pdf_path ? `<div style=\"margin-top:6px;\"><a href=\"${API_BASE}${r.pdf_path}\" target=\"_blank\">${icon}Deschide PDF</a></div>` : ''}
-            </div>
+              ${r.pdf_path ? `<div style=\"margin-top:6px;\"><a href=\"${API_BASE}${r.pdf_path}\" target=\"_blank\">Deschide PDF</a></div>` : ''}\n            </div>
           `).join('');
         });
       }
